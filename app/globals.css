@@ -1,26 +1,58 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  background-color: #faf6ee;
+  color: #3b2a1c;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-feature-settings: "palt";
+  -webkit-font-smoothing: antialiased;
+}
+
+/* iOS の input zoom 防止 */
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+@layer components {
+  .nm-card {
+    @apply bg-white rounded-2xl shadow-soft border border-nomiris-line/70 p-5;
+  }
+  .nm-label {
+    @apply block text-xs font-semibold text-nomiris-brown mb-1;
+  }
+  .nm-input {
+    @apply w-full rounded-xl border border-nomiris-line bg-white px-3 py-2 text-nomiris-textMain
+           focus:outline-none focus:ring-2 focus:ring-nomiris-orange/40 focus:border-nomiris-orange transition;
+  }
+  .nm-textarea {
+    @apply w-full rounded-xl border border-nomiris-line bg-white px-3 py-2 text-nomiris-textMain
+           focus:outline-none focus:ring-2 focus:ring-nomiris-orange/40 focus:border-nomiris-orange transition resize-y min-h-[88px];
+  }
+  .nm-btn-primary {
+    @apply inline-flex items-center justify-center gap-1 rounded-full bg-nomiris-orange text-white
+           font-semibold px-5 py-3 shadow-sm hover:bg-nomiris-orangeDark transition disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .nm-btn-secondary {
+    @apply inline-flex items-center justify-center gap-1 rounded-full bg-white text-nomiris-brown
+           font-semibold px-5 py-3 border border-nomiris-line hover:bg-nomiris-cream transition;
+  }
+  .nm-btn-ghost {
+    @apply inline-flex items-center justify-center gap-1 rounded-full bg-transparent text-nomiris-brown
+           font-semibold px-3 py-2 hover:bg-nomiris-cream transition;
+  }
+  .nm-chip {
+    @apply inline-flex items-center gap-1 rounded-full bg-nomiris-cream text-nomiris-brown
+           text-xs font-semibold px-2.5 py-1 border border-nomiris-line;
+  }
 }
