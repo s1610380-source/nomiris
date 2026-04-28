@@ -1,4 +1,4 @@
-import type { EventCondition, Restaurant, Tone } from "./types";
+import type { EventCondition, Restaurant } from "./types";
 
 const CIRCLED = ["①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩"];
 
@@ -12,6 +12,11 @@ function nomihodaiLabel(value: EventCondition["nomihodai"]): string {
   return "飲み放題は問わず";
 }
 
+function hasUrl(url: string): boolean {
+  const v = url.trim();
+  return !!v && v !== "#placeholder" && !v.startsWith("#");
+}
+
 function buildPremise(condition: EventCondition): string {
   const parts: string[] = [];
   if (condition.area) {
@@ -23,7 +28,9 @@ function buildPremise(condition: EventCondition): string {
   } else if (condition.walkingMinutes > 0) {
     parts.push(`駅から徒歩${condition.walkingMinutes}分以内`);
   }
-  parts.push(nomihodaiLabel(condition.nomihodai));
+  if (condition.nomihodai !== "どちらでも") {
+    parts.push(nomihodaiLabel(condition.nomihodai));
+  }
   if (condition.budgetLimit > 0) {
     parts.push(`${condition.budgetLimit.toLocaleString()}円/人以内`);
   }
@@ -36,18 +43,40 @@ function buildPremise(condition: EventCondition): string {
   return parts.join("、");
 }
 
-function buildRestaurantBlock(r: Restaurant, index: number): string {
+type ToneKind = "business" | "friend" | "couple";
+
+function buildRestaurantBlock(
+  r: Restaurant,
+  index: number,
+  tone: ToneKind,
+): string {
   const lines: string[] = [];
   const head = `${circled(index)}${r.name}${r.genre ? `（${r.genre}）` : ""}`;
   lines.push(head);
-  if (r.url.trim()) lines.push(r.url.trim());
-  if (r.recommendPoint.trim()) lines.push(`・${r.recommendPoint.trim()}`);
+  if (hasUrl(r.url)) lines.push(r.url.trim());
+
+  if (r.recommendPoint.trim()) {
+    if (tone === "friend") {
+      lines.push(`・${r.recommendPoint.trim()} ✨`);
+    } else if (tone === "couple") {
+      lines.push(`・${r.recommendPoint.trim()} 💭`);
+    } else {
+      lines.push(`・${r.recommendPoint.trim()}`);
+    }
+  }
+
   if (r.cautionPoint.trim()) {
-    const emoji = r.emoji ? r.emoji : "";
-    lines.push(`・${r.cautionPoint.trim()}${emoji}`);
-  } else if (r.emoji && !r.recommendPoint.trim()) {
+    if (tone === "friend") {
+      lines.push(`・${r.cautionPoint.trim()} ${r.emoji || ""}`.trim());
+    } else if (tone === "couple") {
+      lines.push(`・ちょい気になるのは: ${r.cautionPoint.trim()}`);
+    } else {
+      lines.push(`・${r.cautionPoint.trim()}`);
+    }
+  } else if (r.emoji && tone === "friend" && !r.recommendPoint.trim()) {
     lines.push(r.emoji);
   }
+
   return lines.join("\n");
 }
 
@@ -57,39 +86,38 @@ interface ToneTexts {
   outro: string;
 }
 
-function getToneTexts(tone: Tone, premise: string): ToneTexts {
-  if (tone === "カジュアル") {
+function getToneTexts(tone: ToneKind, condition: EventCondition): ToneTexts {
+  const premise = buildPremise(condition);
+  const area = condition.area || "このエリア";
+
+  if (tone === "business") {
     return {
-      intro: "候補こんな感じでまとめてみた！\n見てもらえると嬉しい〜🐿️",
-      premiseLead: `前提条件は、${premise}って感じ！`,
-      outro: "他にも候補あるから、希望あったら気軽に教えてね〜🐿️",
+      intro: "会食候補につきまして、以下の通り整理いたしました。",
+      premiseLead: `アクセス・予算・雰囲気を踏まえ候補を選定しております。\n前提条件: ${premise}。`,
+      outro: "ご検討のほど、よろしくお願いいたします。",
     };
   }
-  if (tone === "社内向け") {
+  if (tone === "friend") {
     return {
-      intro:
-        "会食候補につきまして、以下の通り整理いたしました。\nご確認のほど、よろしくお願いいたします。",
-      premiseLead: `アクセス、予算、雰囲気を踏まえて候補を選定しております。\n前提条件: ${premise}。`,
-      outro:
-        "他候補もございますので、ご要望や追加観点があればお知らせください。",
+      intro: `${area}の候補こんな感じでまとめてみた！🍻`,
+      premiseLead: `条件はざっくり、${premise}って感じ！`,
+      outro: "気になるとこあったら教えて〜！🐿️",
     };
   }
-  // 丁寧
+  // couple
   return {
-    intro:
-      "下記の通り、候補案まとめました！\nご確認いただけますと幸いです。",
-    premiseLead: `前提条件は、${premise}です！`,
-    outro: "この他にも候補ありますので、ご要望あればお伝えください🙇‍♂️",
+    intro: `${area}でいいお店探してみたよ💕`,
+    premiseLead: `${premise}、こんな感じで気になってる🐿️`,
+    outro: "行きたいとこあったら教えてね🐿️",
   };
 }
 
-export function generateProposal(
+function generateForTone(
   condition: EventCondition,
   selected: Restaurant[],
+  tone: ToneKind,
 ): string {
-  const premise = buildPremise(condition);
-  const tt = getToneTexts(condition.tone, premise);
-
+  const tt = getToneTexts(tone, condition);
   const sections: string[] = [];
   sections.push(tt.intro);
   sections.push(tt.premiseLead);
@@ -97,9 +125,19 @@ export function generateProposal(
     sections.push(`〜${condition.title.trim()}〜`);
   }
   selected.forEach((r, i) => {
-    sections.push(buildRestaurantBlock(r, i));
+    sections.push(buildRestaurantBlock(r, i, tone));
   });
   sections.push(tt.outro);
-
   return sections.join("\n\n");
+}
+
+export function generateAllProposals(
+  condition: EventCondition,
+  selected: Restaurant[],
+): { business: string; friend: string; couple: string } {
+  return {
+    business: generateForTone(condition, selected, "business"),
+    friend: generateForTone(condition, selected, "friend"),
+    couple: generateForTone(condition, selected, "couple"),
+  };
 }

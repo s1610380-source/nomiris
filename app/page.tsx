@@ -1,57 +1,35 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Header from "./components/Header";
-import SectionCard from "./components/SectionCard";
-import ConditionForm from "./components/ConditionForm";
-import RestaurantForm from "./components/RestaurantForm";
-import RestaurantList from "./components/RestaurantList";
-import ProposalPanel from "./components/ProposalPanel";
-import {
-  DEFAULT_CONDITION,
-  DEFAULT_RESTAURANTS,
-  STORAGE_KEYS,
-} from "./lib/mockData";
+import StepIndicator from "./components/StepIndicator";
+import Step1ConditionForm from "./components/Step1ConditionForm";
+import Step2Picker from "./components/Step2Picker";
+import Step3Proposal from "./components/Step3Proposal";
+import { CATALOG } from "./lib/catalog";
+import { pickCandidates } from "./lib/pick";
+import { DEFAULT_CONDITION, STORAGE_KEYS } from "./lib/mockData";
 import type { EventCondition, Restaurant } from "./lib/types";
 
-type Draft = Omit<Restaurant, "id" | "selected">;
-
-function makeId(): string {
-  if (
-    typeof crypto !== "undefined" &&
-    typeof crypto.randomUUID === "function"
-  ) {
-    return crypto.randomUUID();
-  }
-  return `r-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-}
+type StepNum = 1 | 2 | 3;
 
 export default function Home() {
+  const [step, setStep] = useState<StepNum>(1);
   const [condition, setCondition] =
     useState<EventCondition>(DEFAULT_CONDITION);
-  const [restaurants, setRestaurants] =
-    useState<Restaurant[]>(DEFAULT_RESTAURANTS);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [candidates, setCandidates] = useState<Restaurant[]>([]);
   const [hydrated, setHydrated] = useState(false);
-  const formRef = useRef<HTMLDivElement | null>(null);
 
-  // Load from localStorage on mount (client only) — keeps SSR/initial render stable.
+  // 起動時に localStorage から条件のみ復元（候補はステップ2で必ず再ピックされるため永続化しない）
   useEffect(() => {
     try {
-      const rawCond = localStorage.getItem(STORAGE_KEYS.condition);
-      if (rawCond) {
-        const parsed = JSON.parse(rawCond) as Partial<EventCondition>;
+      const raw = localStorage.getItem(STORAGE_KEYS.condition);
+      if (raw) {
+        const parsed = JSON.parse(raw) as Partial<EventCondition>;
         setCondition({ ...DEFAULT_CONDITION, ...parsed });
       }
-      const rawRest = localStorage.getItem(STORAGE_KEYS.restaurants);
-      if (rawRest) {
-        const parsed = JSON.parse(rawRest) as Restaurant[];
-        if (Array.isArray(parsed)) {
-          setRestaurants(parsed);
-        }
-      }
     } catch {
-      // ignore parse errors and keep defaults
+      // ignore parse errors
     } finally {
       setHydrated(true);
     }
@@ -60,122 +38,72 @@ export default function Home() {
   useEffect(() => {
     if (!hydrated) return;
     try {
-      localStorage.setItem(
-        STORAGE_KEYS.condition,
-        JSON.stringify(condition),
-      );
+      localStorage.setItem(STORAGE_KEYS.condition, JSON.stringify(condition));
     } catch {
       /* noop */
     }
   }, [condition, hydrated]);
 
+  // ステップ切り替え時にスクロール位置をトップにリセット
   useEffect(() => {
-    if (!hydrated) return;
-    try {
-      localStorage.setItem(
-        STORAGE_KEYS.restaurants,
-        JSON.stringify(restaurants),
-      );
-    } catch {
-      /* noop */
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "auto" });
     }
-  }, [restaurants, hydrated]);
+  }, [step]);
 
-  const editingRestaurant =
-    editingId ? restaurants.find((r) => r.id === editingId) ?? null : null;
-
-  const handleAdd = (draft: Draft) => {
-    const next: Restaurant = { ...draft, id: makeId(), selected: true };
-    setRestaurants((rs) => [...rs, next]);
-  };
-
-  const handleUpdate = (id: string, draft: Draft) => {
-    setRestaurants((rs) =>
-      rs.map((r) => (r.id === id ? { ...r, ...draft } : r)),
-    );
-    setEditingId(null);
-  };
-
-  const handleToggleSelect = (id: string) => {
-    setRestaurants((rs) =>
-      rs.map((r) => (r.id === id ? { ...r, selected: !r.selected } : r)),
-    );
-  };
-
-  const handleEdit = (id: string) => {
-    setEditingId(id);
-    if (formRef.current) {
-      formRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+  const goToStep2 = () => {
+    // ステップ1→2に進むタイミングで候補を自動ピック（既に候補がある場合はそのまま）
+    if (candidates.length === 0) {
+      setCandidates(pickCandidates(CATALOG, condition));
     }
+    setStep(2);
   };
 
-  const handleDelete = (id: string) => {
-    setRestaurants((rs) => rs.filter((r) => r.id !== id));
-    if (editingId === id) setEditingId(null);
+  const goToStep3 = () => {
+    setStep(3);
   };
 
-  const handleCancelEdit = () => setEditingId(null);
+  const goBackToStep1 = () => setStep(1);
+  const goBackToStep2 = () => setStep(2);
+
+  const handleRestart = () => {
+    // 入力はリセットしないが、候補はクリアしてステップ1に戻す
+    setCandidates([]);
+    setStep(1);
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
+      <StepIndicator step={step} />
       <main className="flex-1">
-        <div className="mx-auto max-w-2xl px-4 py-6 space-y-5">
-          <SectionCard
-            step={1}
-            emoji="📝"
-            title="前提条件を入力"
-            description="どんな飲み会か、ざっくり入力してください。詳細は折りたたみから。"
-          >
-            <ConditionForm value={condition} onChange={setCondition} />
-          </SectionCard>
-
-          <div ref={formRef}>
-            <SectionCard
-              step={2}
-              emoji="🍻"
-              title={editingRestaurant ? "候補店を編集" : "候補店を追加"}
-              description={
-                editingRestaurant
-                  ? `「${editingRestaurant.name}」を編集中`
-                  : "見つけたお店をどんどん追加していきましょう。"
-              }
-            >
-              <RestaurantForm
-                editing={editingRestaurant}
-                onAdd={handleAdd}
-                onUpdate={handleUpdate}
-                onCancelEdit={handleCancelEdit}
-              />
-            </SectionCard>
-          </div>
-
-          <SectionCard
-            emoji="✅"
-            title="候補リスト"
-            description="提案文に含めたい候補店をチェック。"
-          >
-            <RestaurantList
-              restaurants={restaurants}
-              onToggleSelect={handleToggleSelect}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
+        <div className="mx-auto max-w-2xl px-4 py-5">
+          {step === 1 && (
+            <Step1ConditionForm
+              value={condition}
+              onChange={setCondition}
+              onNext={goToStep2}
             />
-          </SectionCard>
-
-          <SectionCard
-            step={3}
-            emoji="✨"
-            title="提案文を生成"
-            description="トーンに合わせて、そのまま貼れる提案文を生成します。"
-          >
-            <ProposalPanel
+          )}
+          {step === 2 && (
+            <Step2Picker
               condition={condition}
-              restaurants={restaurants}
+              candidates={candidates}
+              setCandidates={setCandidates}
+              onBack={goBackToStep1}
+              onNext={goToStep3}
             />
-          </SectionCard>
+          )}
+          {step === 3 && (
+            <Step3Proposal
+              condition={condition}
+              candidates={candidates}
+              onBack={goBackToStep2}
+              onRestart={handleRestart}
+            />
+          )}
 
-          <p className="pt-2 pb-8 text-center text-xs text-nomiris-textSub">
+          <p className="pt-6 pb-8 text-center text-xs text-nomiris-textSub">
             🐿️ 飲みリス — データはこの端末の localStorage にのみ保存されます。
           </p>
         </div>

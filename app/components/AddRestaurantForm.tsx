@@ -1,32 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { Restaurant } from "../lib/types";
 
 type Draft = Omit<Restaurant, "id" | "selected">;
 
-const EMPTY: Draft = {
-  name: "",
-  genre: "",
-  url: "",
-  area: "",
-  budget: "",
-  googleRating: "",
-  tabelogRating: "",
-  walkingMinutes: 0,
-  hasNomihodai: false,
-  hasPrivateRoom: false,
-  memo: "",
-  recommendPoint: "",
-  cautionPoint: "",
-  emoji: "🍽️",
-};
-
 interface Props {
-  editing: Restaurant | null;
+  defaultArea: string;
   onAdd: (draft: Draft) => void;
-  onUpdate: (id: string, draft: Draft) => void;
-  onCancelEdit: () => void;
+  onCancel: () => void;
 }
 
 function toIntOrZero(v: string): number {
@@ -34,24 +16,28 @@ function toIntOrZero(v: string): number {
   return Number.isFinite(n) && !Number.isNaN(n) ? n : 0;
 }
 
-export default function RestaurantForm({
-  editing,
+export default function AddRestaurantForm({
+  defaultArea,
   onAdd,
-  onUpdate,
-  onCancelEdit,
+  onCancel,
 }: Props) {
-  const [draft, setDraft] = useState<Draft>(EMPTY);
-
-  useEffect(() => {
-    if (editing) {
-      const { id: _id, selected: _selected, ...rest } = editing;
-      void _id;
-      void _selected;
-      setDraft(rest);
-    } else {
-      setDraft(EMPTY);
-    }
-  }, [editing]);
+  const [draft, setDraft] = useState<Draft>({
+    name: "",
+    genre: "",
+    url: "",
+    area: defaultArea,
+    budget: "",
+    budgetMin: 0,
+    budgetMax: 0,
+    googleRating: "",
+    walkingMinutes: 0,
+    hasNomihodai: false,
+    hasPrivateRoom: false,
+    memo: "",
+    recommendPoint: "",
+    cautionPoint: "",
+    emoji: "🍽️",
+  });
 
   const update = <K extends keyof Draft>(key: K, val: Draft[K]) => {
     setDraft((d) => ({ ...d, [key]: val }));
@@ -60,23 +46,27 @@ export default function RestaurantForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!draft.name.trim()) return;
-    if (editing) {
-      onUpdate(editing.id, draft);
-    } else {
-      onAdd(draft);
-      setDraft(EMPTY);
-    }
+    onAdd(draft);
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
+      <header>
+        <h3 className="text-base font-bold text-nomiris-brownDark">
+          ＋ 候補を追加
+        </h3>
+        <p className="mt-1 text-xs text-nomiris-textSub">
+          手元のお店を候補に足すだけ。最低限、店名があればOKです。
+        </p>
+      </header>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="sm:col-span-2">
-          <label htmlFor="r-name" className="nm-label">
+          <label htmlFor="add-name" className="nm-label">
             店名 <span className="text-nomiris-orange">*</span>
           </label>
           <input
-            id="r-name"
+            id="add-name"
             className="nm-input"
             value={draft.name}
             onChange={(e) => update("name", e.target.value)}
@@ -84,23 +74,23 @@ export default function RestaurantForm({
           />
         </div>
         <div>
-          <label htmlFor="r-genre" className="nm-label">
+          <label htmlFor="add-genre" className="nm-label">
             ジャンル
           </label>
           <input
-            id="r-genre"
+            id="add-genre"
             className="nm-input"
-            placeholder="例: 焼き鳥 / 中華 / ビストロ"
+            placeholder="例: 焼き鳥"
             value={draft.genre}
             onChange={(e) => update("genre", e.target.value)}
           />
         </div>
         <div>
-          <label htmlFor="r-emoji" className="nm-label">
+          <label htmlFor="add-emoji" className="nm-label">
             絵文字
           </label>
           <input
-            id="r-emoji"
+            id="add-emoji"
             className="nm-input"
             placeholder="🍻"
             value={draft.emoji}
@@ -108,11 +98,11 @@ export default function RestaurantForm({
           />
         </div>
         <div className="sm:col-span-2">
-          <label htmlFor="r-url" className="nm-label">
+          <label htmlFor="add-url" className="nm-label">
             URL
           </label>
           <input
-            id="r-url"
+            id="add-url"
             type="url"
             inputMode="url"
             className="nm-input"
@@ -122,22 +112,22 @@ export default function RestaurantForm({
           />
         </div>
         <div>
-          <label htmlFor="r-area" className="nm-label">
+          <label htmlFor="add-area" className="nm-label">
             エリア
           </label>
           <input
-            id="r-area"
+            id="add-area"
             className="nm-input"
             value={draft.area}
             onChange={(e) => update("area", e.target.value)}
           />
         </div>
         <div>
-          <label htmlFor="r-budget" className="nm-label">
+          <label htmlFor="add-budget" className="nm-label">
             予算目安
           </label>
           <input
-            id="r-budget"
+            id="add-budget"
             className="nm-input"
             placeholder="例: 5,000〜6,000円"
             value={draft.budget}
@@ -145,11 +135,11 @@ export default function RestaurantForm({
           />
         </div>
         <div>
-          <label htmlFor="r-google" className="nm-label">
+          <label htmlFor="add-google" className="nm-label">
             Google評価
           </label>
           <input
-            id="r-google"
+            id="add-google"
             className="nm-input"
             placeholder="例: 4.5"
             value={draft.googleRating}
@@ -157,23 +147,11 @@ export default function RestaurantForm({
           />
         </div>
         <div>
-          <label htmlFor="r-tabelog" className="nm-label">
-            食べログ評価
-          </label>
-          <input
-            id="r-tabelog"
-            className="nm-input"
-            placeholder="例: 3.45"
-            value={draft.tabelogRating}
-            onChange={(e) => update("tabelogRating", e.target.value)}
-          />
-        </div>
-        <div>
-          <label htmlFor="r-walk" className="nm-label">
+          <label htmlFor="add-walk" className="nm-label">
             徒歩分数
           </label>
           <input
-            id="r-walk"
+            id="add-walk"
             type="number"
             inputMode="numeric"
             min={0}
@@ -205,33 +183,33 @@ export default function RestaurantForm({
           </label>
         </div>
         <div className="sm:col-span-2">
-          <label htmlFor="r-memo" className="nm-label">
+          <label htmlFor="add-memo" className="nm-label">
             一言メモ
           </label>
           <input
-            id="r-memo"
+            id="add-memo"
             className="nm-input"
             value={draft.memo}
             onChange={(e) => update("memo", e.target.value)}
           />
         </div>
         <div className="sm:col-span-2">
-          <label htmlFor="r-recommend" className="nm-label">
+          <label htmlFor="add-recommend" className="nm-label">
             おすすめポイント
           </label>
           <textarea
-            id="r-recommend"
+            id="add-recommend"
             className="nm-textarea"
             value={draft.recommendPoint}
             onChange={(e) => update("recommendPoint", e.target.value)}
           />
         </div>
         <div className="sm:col-span-2">
-          <label htmlFor="r-caution" className="nm-label">
+          <label htmlFor="add-caution" className="nm-label">
             注意点
           </label>
           <textarea
-            id="r-caution"
+            id="add-caution"
             className="nm-textarea"
             value={draft.cautionPoint}
             onChange={(e) => update("cautionPoint", e.target.value)}
@@ -239,19 +217,13 @@ export default function RestaurantForm({
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <button type="submit" className="nm-btn-primary">
-          {editing ? "更新する" : "＋ 候補に追加"}
+      <div className="flex flex-wrap gap-2 justify-end">
+        <button type="button" className="nm-btn-secondary" onClick={onCancel}>
+          キャンセル
         </button>
-        {editing && (
-          <button
-            type="button"
-            className="nm-btn-secondary"
-            onClick={onCancelEdit}
-          >
-            キャンセル
-          </button>
-        )}
+        <button type="submit" className="nm-btn-primary">
+          ＋ 追加する
+        </button>
       </div>
     </form>
   );

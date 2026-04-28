@@ -3,14 +3,23 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "飲みリス🐿️",
-  description:
-    "飲み会・会食・懇親会の幹事のための、候補店まとめ＆提案文ジェネレーター。",
+  description: "飲み会候補、サクッとまとめる。",
+  manifest: "/manifest.json",
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+  },
+  appleWebApp: {
+    capable: true,
+    title: "飲みリス",
+    statusBarStyle: "default",
+  },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#FAF6EE",
+  themeColor: "#E8843B",
 };
 
 export default function RootLayout({
