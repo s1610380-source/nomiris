@@ -1,5 +1,27 @@
 import type { EventCondition, Mode, Plan, Restaurant } from "./types";
 
+/**
+ * desiredDate を読みやすく整形する。
+ * datetime-local 形式 (例: "2026-05-10T19:00") なら「5月10日（土）19:00」形式に、
+ * フリーテキスト（"5/10〜5/15のいずれか" など）はそのまま返す。
+ */
+export function formatDesiredDate(s: string): string {
+  if (!s) return "";
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  if (!m) return s;
+  const [, year, month, day, hour, min] = m;
+  const d = new Date(
+    parseInt(year, 10),
+    parseInt(month, 10) - 1,
+    parseInt(day, 10),
+    parseInt(hour, 10),
+    parseInt(min, 10),
+  );
+  if (Number.isNaN(d.getTime())) return s;
+  const wd = ["日", "月", "火", "水", "木", "金", "土"][d.getDay()];
+  return `${parseInt(month, 10)}月${parseInt(day, 10)}日（${wd}）${hour}:${min}`;
+}
+
 /** テンプレート ID（モード × 用途別の文面） */
 export type TemplateId =
   // casual / free
@@ -166,7 +188,8 @@ function premiseLine(condition: EventCondition): string {
   if (condition.peopleCount > 0) parts.push(`人数: ${condition.peopleCount}名`);
   if (condition.budgetLimit > 0)
     parts.push(`予算: ${condition.budgetLimit.toLocaleString()}円/人以内`);
-  if (condition.desiredDate) parts.push(`希望日時: ${condition.desiredDate}`);
+  if (condition.desiredDate)
+    parts.push(`希望日時: ${formatDesiredDate(condition.desiredDate)}`);
   if (condition.nomihodai !== "どちらでも")
     parts.push(`飲み放題: ${condition.nomihodai}`);
   if (condition.privateRoom !== "どちらでも")
@@ -257,7 +280,9 @@ function tplFriendLine(c: EventCondition, sel: Restaurant[]): string {
     : "";
   return [
     `${c.area || "エリア"}の候補こんな感じです！🍻`,
-    c.desiredDate ? `日程は ${c.desiredDate} あたりで考えてます。` : "",
+    c.desiredDate
+      ? `日程は ${formatDesiredDate(c.desiredDate)} あたりで考えてます。`
+      : "",
     blocks,
     reco,
     "気になるとこあったら教えて〜！🐿️",
@@ -270,7 +295,7 @@ function tplCircleNotice(c: EventCondition, sel: Restaurant[]): string {
   const blocks = sel.map((r, i) => casualShopBlock(r, i)).join("\n\n");
   return [
     `お疲れ〜！${c.scene || "飲み会"}の候補まとめてみたよ📣`,
-    `エリア: ${c.area || "未定"}${c.desiredDate ? ` / 希望日時: ${c.desiredDate}` : ""}${c.peopleCount > 0 ? ` / 人数: ${c.peopleCount}名想定` : ""}`,
+    `エリア: ${c.area || "未定"}${c.desiredDate ? ` / 希望日時: ${formatDesiredDate(c.desiredDate)}` : ""}${c.peopleCount > 0 ? ` / 人数: ${c.peopleCount}名想定` : ""}`,
     blocks,
     "投票・希望あったらこのスレで返信お願い〜！🐿️",
   ]
@@ -409,7 +434,7 @@ function tplDateInvite(c: EventCondition, sel: Restaurant[]): string {
     `よかったら今度、${area}でごはん行かない？✨`,
     hint,
     c.desiredDate
-      ? `${c.desiredDate} あたりで都合つきそうな日あったら教えて！`
+      ? `${formatDesiredDate(c.desiredDate)} あたりで都合つきそうな日あったら教えて！`
       : "もし都合つきそうな日あったら、いくつか候補もらえると嬉しいです。",
   ]
     .filter(Boolean)
@@ -435,7 +460,7 @@ function tplDateReminder(c: EventCondition, sel: Restaurant[]): string {
   const top = sel[0];
   return [
     "おはよ〜☀️",
-    `今日${c.desiredDate ? ` ${c.desiredDate}` : ""} よろしくお願いします！`,
+    `今日${c.desiredDate ? ` ${formatDesiredDate(c.desiredDate)}` : ""} よろしくお願いします！`,
     top
       ? `お店は ${top.emoji || ""}${top.name}${top.area ? `（${top.area}）` : ""} で取ってあります！`
       : "",
@@ -470,7 +495,7 @@ function tplDateSecondMeet(c: EventCondition, sel: Restaurant[]): string {
       ? `${area}の ${top.emoji || ""}${top.name}${top.genre ? `（${top.genre}）` : ""} 良さそうだったので、もしよかったら今度一緒に行かない？✨`
       : `${area}でいいお店見つけたから、もしよかったら今度一緒に行かない？✨`,
     c.desiredDate
-      ? `${c.desiredDate} あたり、もし都合つく日あったら教えて〜🐿️`
+      ? `${formatDesiredDate(c.desiredDate)} あたり、もし都合つく日あったら教えて〜🐿️`
       : "都合つきそうな日あったら教えて〜🐿️",
   ].join("\n\n");
 }

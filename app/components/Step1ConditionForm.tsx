@@ -184,17 +184,43 @@ export default function Step1ConditionForm({ value, onChange, onNext }: Props) {
               <label htmlFor="cond-people" className="nm-label">
                 人数
               </label>
-              <input
-                id="cond-people"
-                type="number"
-                inputMode="numeric"
-                min={1}
-                className="nm-input"
-                value={value.peopleCount === 0 ? "" : value.peopleCount}
-                onChange={(e) =>
-                  update("peopleCount", toIntOrZero(e.target.value))
-                }
-              />
+              <div className="flex items-stretch overflow-hidden rounded-xl border border-nomiris-line bg-white">
+                <button
+                  type="button"
+                  aria-label="人数を1人減らす"
+                  onClick={() =>
+                    update(
+                      "peopleCount",
+                      Math.max(1, (value.peopleCount || 1) - 1),
+                    )
+                  }
+                  className="px-4 text-2xl font-bold text-nomiris-orange hover:bg-nomiris-cream active:bg-nomiris-cream/80 disabled:text-nomiris-line disabled:hover:bg-transparent"
+                  disabled={(value.peopleCount || 0) <= 1}
+                >
+                  −
+                </button>
+                <input
+                  id="cond-people"
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  className="flex-1 border-0 bg-transparent text-center text-base font-semibold text-nomiris-brownDark focus:outline-none"
+                  value={value.peopleCount === 0 ? "" : value.peopleCount}
+                  onChange={(e) =>
+                    update("peopleCount", toIntOrZero(e.target.value))
+                  }
+                />
+                <button
+                  type="button"
+                  aria-label="人数を1人増やす"
+                  onClick={() =>
+                    update("peopleCount", (value.peopleCount || 0) + 1)
+                  }
+                  className="px-4 text-2xl font-bold text-nomiris-orange hover:bg-nomiris-cream active:bg-nomiris-cream/80"
+                >
+                  ＋
+                </button>
+              </div>
             </div>
 
             <div>
@@ -240,15 +266,32 @@ export default function Step1ConditionForm({ value, onChange, onNext }: Props) {
               <label htmlFor="cond-date" className="nm-label">
                 希望日時（任意）
               </label>
-              <input
-                id="cond-date"
-                className="nm-input"
-                placeholder="例: 来週金曜の19時、5/10〜5/15のいずれか"
-                value={value.desiredDate}
-                onChange={(e) => update("desiredDate", e.target.value)}
-              />
+              <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-2">
+                <input
+                  id="cond-date"
+                  type="datetime-local"
+                  className="nm-input"
+                  value={
+                    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value.desiredDate)
+                      ? value.desiredDate.slice(0, 16)
+                      : ""
+                  }
+                  onChange={(e) => update("desiredDate", e.target.value)}
+                />
+                <input
+                  type="text"
+                  className="nm-input"
+                  placeholder="または範囲・備考（例: 5/10〜5/15のいずれか）"
+                  value={
+                    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value.desiredDate)
+                      ? ""
+                      : value.desiredDate
+                  }
+                  onChange={(e) => update("desiredDate", e.target.value)}
+                />
+              </div>
               <p className="mt-1 text-[11px] text-nomiris-textSub">
-                提案文・メール文面に差し込まれます（任意）
+                カレンダーで日時を選ぶか、範囲を文字で書くかどちらでも OK。提案文・メール文面に差し込まれます。
               </p>
             </div>
           </div>
