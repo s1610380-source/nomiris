@@ -45,6 +45,8 @@ export interface Restaurant {
   cautionPoint: string;
   emoji: string;
   selected: boolean;
+  /** 住所（HotPepper 由来の店のみ。カタログは未設定でよい） */
+  address?: string;
 }
 
 /** id/selected を持たないカタログ用エントリ。pickCandidates で id/selected を付与する */

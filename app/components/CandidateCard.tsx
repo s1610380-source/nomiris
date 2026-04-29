@@ -75,6 +75,11 @@ export default function CandidateCard({ restaurant, onToggle, onDelete }: Props)
               </span>
             )}
           </div>
+          {r.address && (
+            <p className="mt-2 text-xs text-nomiris-textSub break-all">
+              📍 {r.address}
+            </p>
+          )}
           {r.memo && (
             <p className="mt-2 text-sm text-nomiris-textMain">📝 {r.memo}</p>
           )}

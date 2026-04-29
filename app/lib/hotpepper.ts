@@ -110,10 +110,10 @@ export function parseBudget(
   return { min: 0, max: 0 };
 }
 
-/** access テキストから「徒歩 N 分」を抽出する */
+/** access テキストから「徒歩 N 分」を抽出する。「徒歩約N分」「徒歩 N分」も拾う */
 export function parseWalkingMinutes(access: string | undefined): number {
   const s = access ?? "";
-  const m = s.match(/徒歩\s*(\d+)\s*分/);
+  const m = s.match(/徒歩\s*約?\s*(\d+)\s*分/);
   if (m) {
     const n = parseInt(m[1], 10);
     return Number.isFinite(n) ? n : 0;
@@ -151,6 +151,7 @@ export function convertToRestaurant(shop: HotPepperShop): Restaurant {
     cautionPoint: "",
     emoji,
     selected: true,
+    address: (shop.address ?? "").trim(),
   };
 }
 
