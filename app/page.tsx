@@ -1,13 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Header from "./components/Header";
+import HomeHero from "./components/HomeHero";
 import StepIndicator from "./components/StepIndicator";
 import Step1ConditionForm from "./components/Step1ConditionForm";
 import Step2Picker from "./components/Step2Picker";
 import Step3Proposal from "./components/Step3Proposal";
+import { useUpsell } from "./components/UpsellModal";
 import { DEFAULT_CONDITION, STORAGE_KEYS } from "./lib/mockData";
-import type { EventCondition, Restaurant } from "./lib/types";
+import { MODE_PLANS } from "./lib/mode";
+import { usePlan } from "./lib/plan";
+import type { EventCondition, Mode, Restaurant } from "./lib/types";
 
 type StepNum = 1 | 2 | 3;
 
@@ -17,6 +21,10 @@ export default function Home() {
     useState<EventCondition>(DEFAULT_CONDITION);
   const [candidates, setCandidates] = useState<Restaurant[]>([]);
   const [hydrated, setHydrated] = useState(false);
+  const stepStartRef = useRef<HTMLDivElement | null>(null);
+
+  const { isPro } = usePlan();
+  const upsell = useUpsell();
 
   // 起動時に localStorage から条件のみ復元（候補はステップ2で必ず再ピックされるため永続化しない）
   useEffect(() => {
@@ -49,27 +57,48 @@ export default function Home() {
     }
   }, [step]);
 
-  const goToStep2 = () => {
-    // 候補のロードは Step2Picker 側の useEffect で実行する（HotPepper API → fallback でカタログ）
-    setStep(2);
-  };
-
-  const goToStep3 = () => {
-    setStep(3);
-  };
-
+  const goToStep2 = () => setStep(2);
+  const goToStep3 = () => setStep(3);
   const goBackToStep1 = () => setStep(1);
   const goBackToStep2 = () => setStep(2);
 
   const handleRestart = () => {
-    // 入力はリセットしないが、候補はクリアしてステップ1に戻す
     setCandidates([]);
     setStep(1);
+  };
+
+  const handleSelectMode = (m: Mode) => {
+    setCondition((prev) => ({ ...prev, mode: m }));
+    if (MODE_PLANS[m] === "pro" && !isPro) {
+      upsell.open({
+        title: `${m === "business" ? "仕事・会食" : "デート"}モードは Pro 向けです`,
+        description:
+          "条件入力までは無料で試せますが、メールや LINE 文面の生成は Pro 版で解放されます。",
+      });
+    }
+    // step 1 に向けてスクロール
+    if (stepStartRef.current) {
+      stepStartRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  const handleHeroCta = () => {
+    if (stepStartRef.current) {
+      stepStartRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   };
 
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
+      {step === 1 && (
+        <HomeHero
+          selectedMode={condition.mode}
+          onSelectMode={handleSelectMode}
+          onCtaClick={handleHeroCta}
+        />
+      )}
+      <div ref={stepStartRef} />
       <StepIndicator step={step} />
       <main className="flex-1">
         <div className="mx-auto max-w-2xl px-4 py-5">

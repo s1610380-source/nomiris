@@ -55,4 +55,20 @@ textarea {
     @apply inline-flex items-center gap-1 rounded-full bg-nomiris-cream text-nomiris-brown
            text-xs font-semibold px-2.5 py-1 border border-nomiris-line;
   }
+
+  /* Pro 系（ゴールド） */
+  .pro-card {
+    @apply bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-300 shadow-sm;
+  }
+  .pro-badge {
+    @apply inline-flex items-center gap-0.5 rounded-full border border-amber-300 bg-amber-100
+           px-2 py-0.5 text-[10px] font-bold text-amber-800;
+  }
+  .pro-btn {
+    @apply inline-flex items-center justify-center gap-1 rounded-full
+           bg-gradient-to-r from-amber-500 to-orange-500 text-white
+           font-bold px-5 py-3 shadow-sm transition
+           hover:from-amber-600 hover:to-orange-600
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
 }

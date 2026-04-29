@@ -1,9 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { UpsellProvider } from "./components/UpsellModal";
 
 export const metadata: Metadata = {
   title: "飲みリス🐿️",
-  description: "飲み会候補、サクッとまとめる。",
+  description: "飲み会・会食の候補案を、きれいに一発作成。",
   manifest: "/manifest.json",
   icons: {
     icon: "/icon.svg",
@@ -30,7 +31,7 @@ export default function RootLayout({
   return (
     <html lang="ja" className="h-full">
       <body className="min-h-full bg-nomiris-bg text-nomiris-textMain">
-        {children}
+        <UpsellProvider>{children}</UpsellProvider>
       </body>
     </html>
   );

@@ -1,8 +1,23 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { EventCondition, Restaurant } from "../lib/types";
-import { generateAllProposals } from "../lib/generateProposal";
+import { MODE_EMOJIS, MODE_LABELS } from "../lib/mode";
+import { usePlan } from "../lib/plan";
+import {
+  generateText,
+  templatesForMode,
+  type TemplateId,
+  type TemplateMeta,
+} from "../lib/templates";
+import {
+  makeHistoryId,
+  saveHistory,
+  type HistoryEntry,
+} from "../lib/history";
+import ProBadge from "./ProBadge";
+import ProLock from "./ProLock";
+import { useUpsell } from "./UpsellModal";
 
 interface Props {
   condition: EventCondition;
@@ -10,29 +25,6 @@ interface Props {
   onBack: () => void;
   onRestart: () => void;
 }
-
-type ToneKey = "business" | "friend" | "couple";
-
-const TONES: { key: ToneKey; label: string; emoji: string; hint: string }[] = [
-  {
-    key: "business",
-    label: "ビジネス用",
-    emoji: "🏢",
-    hint: "敬語・客観表現で社内向けにそのまま使えるトーン",
-  },
-  {
-    key: "friend",
-    label: "友達用",
-    emoji: "😊",
-    hint: "カジュアル・絵文字多めでテンポよく",
-  },
-  {
-    key: "couple",
-    label: "彼氏彼女用",
-    emoji: "💕",
-    hint: "やわらかく、二人称でちょっと甘めに",
-  },
-];
 
 export default function Step3Proposal({
   condition,
@@ -45,26 +37,55 @@ export default function Step3Proposal({
     [candidates],
   );
 
-  const initial = useMemo(
-    () => generateAllProposals(condition, selected),
-    [condition, selected],
+  const { plan, isPro } = usePlan();
+  const upsell = useUpsell();
+
+  const templates = useMemo<TemplateMeta[]>(
+    () => templatesForMode(condition.mode),
+    [condition.mode],
   );
 
-  const [texts, setTexts] = useState(initial);
+  /** id → text */
+  const buildAll = useMemo(() => {
+    const out: Record<string, string> = {};
+    templates.forEach((tpl) => {
+      out[tpl.id] = generateText(tpl.id, condition, selected);
+    });
+    return out;
+  }, [condition, selected, templates]);
+
+  const [texts, setTexts] = useState<Record<string, string>>(buildAll);
   const [toast, setToast] = useState<string | null>(null);
 
-  // 条件・候補が変わったら再生成（編集はリセット）
+  // 条件・候補・モードが変わったら再生成（編集はリセット）
   useEffect(() => {
-    setTexts(generateAllProposals(condition, selected));
-  }, [condition, selected]);
+    setTexts(buildAll);
+  }, [buildAll]);
+
+  // 履歴保存（生成タイミングで保存）。同一マウント内で 1 回だけ
+  const savedRef = useRef(false);
+  useEffect(() => {
+    if (savedRef.current) return;
+    if (selected.length === 0) return;
+    savedRef.current = true;
+    const entry: HistoryEntry = {
+      id: makeHistoryId(),
+      createdAt: Date.now(),
+      condition,
+      restaurants: candidates,
+      generatedTexts: buildAll,
+    };
+    saveHistory(entry, plan);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const showToast = (msg: string) => {
     setToast(msg);
     window.setTimeout(() => setToast(null), 2400);
   };
 
-  const handleCopy = async (key: ToneKey) => {
-    const text = texts[key];
+  const handleCopy = async (id: TemplateId) => {
+    const text = texts[id];
     if (!text) return;
     try {
       if (navigator.clipboard && window.isSecureContext) {
@@ -89,48 +110,101 @@ export default function Step3Proposal({
     <div className="space-y-5">
       <section className="nm-card">
         <header>
-          <h2 className="text-lg font-bold text-nomiris-brownDark">
-            <span className="mr-1" aria-hidden>
-              ✨
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-2xl" aria-hidden>
+              {MODE_EMOJIS[condition.mode]}
             </span>
-            提案文（3トーン同時生成）
-          </h2>
+            <h2 className="text-lg font-bold text-nomiris-brownDark">
+              {MODE_LABELS[condition.mode]} の提案文
+            </h2>
+            {!isPro && condition.mode !== "casual" && (
+              <ProBadge />
+            )}
+          </div>
           <p className="mt-1 text-xs text-nomiris-textSub">
-            選択した {selected.length} 件をもとに、3 つのトーンで提案文を作成しました。各カードのコピーボタンでそのまま貼り付けOK。
+            選択した {selected.length} 件をもとに、用途別の文面を生成しました。各カードのコピーボタンでそのまま貼り付け OK。
           </p>
+          {!isPro && condition.mode === "casual" && (
+            <p className="mt-2 text-[11px] text-amber-700">
+              ✨ 仕事・会食 / デートモードに切り替えると、メールや LINE の文面テンプレが Pro 機能として使えます。
+            </p>
+          )}
         </header>
       </section>
 
-      {TONES.map((t) => (
-        <section key={t.key} className="nm-card space-y-3">
-          <header className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <h3 className="text-base font-bold text-nomiris-brownDark">
-                <span className="mr-1" aria-hidden>
-                  {t.emoji}
-                </span>
-                {t.label}
-              </h3>
-              <p className="mt-0.5 text-xs text-nomiris-textSub">{t.hint}</p>
-            </div>
-            <button
-              type="button"
-              className="nm-btn-primary !py-2 !px-3 text-sm shrink-0"
-              onClick={() => handleCopy(t.key)}
-            >
-              📋 コピー
-            </button>
-          </header>
-          <textarea
-            className="nm-textarea min-h-[220px] font-mono text-sm leading-relaxed"
-            value={texts[t.key]}
-            onChange={(e) =>
-              setTexts((prev) => ({ ...prev, [t.key]: e.target.value }))
+      {templates.map((tpl) => {
+        const requiresPro = tpl.plan === "pro";
+        const locked = requiresPro && !isPro;
+        return (
+          <section key={tpl.id} className="nm-card space-y-3">
+            <header className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h3 className="text-base font-bold text-nomiris-brownDark flex items-center gap-2 flex-wrap">
+                  <span aria-hidden>{tpl.emoji}</span>
+                  <span>{tpl.title}</span>
+                  {requiresPro && <ProBadge />}
+                </h3>
+                <p className="mt-0.5 text-xs text-nomiris-textSub">{tpl.hint}</p>
+              </div>
+              {!locked && (
+                <button
+                  type="button"
+                  className="nm-btn-primary !py-2 !px-3 text-sm shrink-0"
+                  onClick={() => handleCopy(tpl.id)}
+                >
+                  📋 コピー
+                </button>
+              )}
+            </header>
+            {locked ? (
+              <ProLock
+                label={`${tpl.title} は Pro 機能`}
+                description="プレビューだけ表示。クリックで Pro の詳細を確認できます。"
+                minHeight="200px"
+              >
+                <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-3 font-mono text-xs leading-relaxed whitespace-pre-wrap text-amber-900/80 min-h-[200px]">
+                  {texts[tpl.id]?.split("\n").slice(0, 6).join("\n") ?? ""}
+                  {"\n…"}
+                </div>
+              </ProLock>
+            ) : (
+              <textarea
+                className="nm-textarea min-h-[220px] font-mono text-sm leading-relaxed"
+                value={texts[tpl.id] ?? ""}
+                onChange={(e) =>
+                  setTexts((prev) => ({ ...prev, [tpl.id]: e.target.value }))
+                }
+                aria-label={`${tpl.title}の提案文`}
+              />
+            )}
+          </section>
+        );
+      })}
+
+      {/* Pro モードでない場合の追加 CTA */}
+      {!isPro && condition.mode === "casual" && (
+        <section className="pro-card p-5 text-center">
+          <h3 className="text-base font-bold text-amber-900">
+            ✨ Pro なら、もっと「失敗しない」場面まで
+          </h3>
+          <p className="mt-1 text-xs text-amber-900/80">
+            社内・社外メール、接待、お礼メール、デートの誘い・お礼 LINE テンプレが解放されます。
+          </p>
+          <button
+            type="button"
+            onClick={() =>
+              upsell.open({
+                title: "Pro で全テンプレを解放",
+                description:
+                  "仕事・会食・デート向けのメール / LINE 文面、AI 比較、無制限の履歴保存が使えるようになります。",
+              })
             }
-            aria-label={`${t.label}の提案文`}
-          />
+            className="mt-3 inline-flex items-center justify-center gap-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold px-5 py-2.5 shadow-sm hover:from-amber-600 hover:to-orange-600 transition text-sm"
+          >
+            ✨ Pro 版を見る
+          </button>
         </section>
-      ))}
+      )}
 
       <div className="flex justify-between gap-2">
         <button type="button" className="nm-btn-ghost" onClick={onBack}>

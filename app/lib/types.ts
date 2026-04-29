@@ -1,16 +1,22 @@
-export type Scene =
-  | "会社飲み"
-  | "友達飲み"
-  | "会食"
-  | "懇親会"
-  | "デート"
-  | "二次会";
+/**
+ * モード（カジュアル飲み / 仕事・会食 / デート）。Free / Pro 制度と連動。
+ */
+export type Mode = "casual" | "business" | "date";
 
-export type Area = "新宿" | "渋谷" | "池袋" | "恵比寿" | "銀座";
+/** プラン */
+export type Plan = "free" | "pro";
+
+/** エリアは自由入力（datalist で suggestion を提示するのみ） */
+export type Area = string;
+
+/** 用途（場面）。モードごとに選択肢が変わるため string で管理。 */
+export type Scene = string;
 
 export type YesNoEither = "あり" | "なし" | "どちらでも";
 
 export interface EventCondition {
+  /** モード（必須） */
+  mode: Mode;
   area: Area;
   scene: Scene;
   peopleCount: number;
@@ -20,9 +26,18 @@ export interface EventCondition {
   walkingMinutes: number;
   nomihodai: YesNoEither;
   privateRoom: YesNoEither;
+  /** 雰囲気（多選択） */
+  atmosphereTags: string[];
+  /** 重視すること（多選択） */
+  importantTags: string[];
+  /** 自由入力の雰囲気（任意） */
   atmosphere: string;
+  /** 相手 */
   participants: string;
+  /** 避けたいこと */
   avoidPoints: string;
+  /** 希望日時（自由入力テキスト） */
+  desiredDate: string;
 }
 
 export interface Restaurant {

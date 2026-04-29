@@ -1,13 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import type {
-  Area,
-  EventCondition,
-  Scene,
-  YesNoEither,
-} from "../lib/types";
-import { AREAS, SCENES } from "../lib/mockData";
+import type { EventCondition, Mode, YesNoEither } from "../lib/types";
+import { AREA_SUGGESTIONS } from "../lib/mockData";
+import {
+  ALL_MODES,
+  ATMOSPHERE_TAGS,
+  IMPORTANT_TAGS,
+  MODE_EMOJIS,
+  MODE_LABELS,
+  MODE_PLANS,
+  SCENE_OPTIONS_BY_MODE,
+} from "../lib/mode";
+import { usePlan } from "../lib/plan";
+import { useUpsell } from "./UpsellModal";
+import ProBadge from "./ProBadge";
 
 const YES_NO_EITHER: YesNoEither[] = ["あり", "なし", "どちらでも"];
 
@@ -24,6 +31,8 @@ function toIntOrZero(v: string): number {
 
 export default function Step1ConditionForm({ value, onChange, onNext }: Props) {
   const [showDetail, setShowDetail] = useState(false);
+  const { isPro } = usePlan();
+  const upsell = useUpsell();
 
   const update = <K extends keyof EventCondition>(
     key: K,
@@ -32,12 +41,89 @@ export default function Step1ConditionForm({ value, onChange, onNext }: Props) {
     onChange({ ...value, [key]: val });
   };
 
+  const toggleTag = (key: "atmosphereTags" | "importantTags", tag: string) => {
+    const current = value[key];
+    const next = current.includes(tag)
+      ? current.filter((t) => t !== tag)
+      : [...current, tag];
+    update(key, next);
+  };
+
+  const handleSelectMode = (m: Mode) => {
+    update("mode", m);
+    // 用途（scene）はモードのデフォルトに揃える
+    const opts = SCENE_OPTIONS_BY_MODE[m];
+    const firstFree = opts.find((o) => !o.proGate) ?? opts[0];
+    if (firstFree) {
+      onChange({ ...value, mode: m, scene: firstFree.value });
+    }
+    if (MODE_PLANS[m] === "pro" && !isPro) {
+      upsell.open({
+        title: `${MODE_LABELS[m]}モードは Pro 向けです`,
+        description:
+          "条件入力までは無料で試せますが、メールや LINE 文面の生成は Pro 版で解放されます。",
+      });
+    }
+  };
+
+  const handleSelectScene = (sceneValue: string, proGate: boolean) => {
+    if (proGate && !isPro) {
+      upsell.open({
+        title: "この用途は Pro 向けです",
+        description:
+          "失敗できない場面に特化した文面（接待・上司・初デート等）は Pro 版に含まれます。",
+      });
+    }
+    update("scene", sceneValue);
+  };
+
   const handleNext = () => {
     onNext();
   };
 
+  const sceneOptions = SCENE_OPTIONS_BY_MODE[value.mode];
+
   return (
     <div className="space-y-5">
+      {/* モード選択チップ */}
+      <section className="nm-card space-y-3">
+        <header>
+          <h2 className="text-lg font-bold text-nomiris-brownDark">
+            <span className="mr-1" aria-hidden>
+              🎯
+            </span>
+            モードを選ぶ
+          </h2>
+          <p className="mt-1 text-xs text-nomiris-textSub">
+            シーンに合わせて、提案文のテンプレートが切り替わります。
+          </p>
+        </header>
+        <div className="flex flex-wrap gap-2">
+          {ALL_MODES.map((m) => {
+            const active = value.mode === m;
+            const isProMode = MODE_PLANS[m] === "pro";
+            return (
+              <button
+                key={m}
+                type="button"
+                onClick={() => handleSelectMode(m)}
+                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-semibold transition ${
+                  active
+                    ? isProMode
+                      ? "border-amber-400 bg-gradient-to-r from-amber-50 to-orange-50 text-amber-900"
+                      : "border-nomiris-orange bg-nomiris-orange text-white"
+                    : "border-nomiris-line bg-white text-nomiris-brown hover:bg-nomiris-cream"
+                }`}
+              >
+                <span aria-hidden>{MODE_EMOJIS[m]}</span>
+                <span>{MODE_LABELS[m]}</span>
+                {isProMode && <ProBadge className="!text-[9px] !px-1.5" />}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
       <section className="nm-card space-y-4">
         <header>
           <h2 className="text-lg font-bold text-nomiris-brownDark">
@@ -55,20 +141,21 @@ export default function Step1ConditionForm({ value, onChange, onNext }: Props) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label htmlFor="cond-area" className="nm-label">
-                エリア
+                エリア（自由入力）
               </label>
-              <select
+              <input
                 id="cond-area"
+                list="nomiris-area-suggestions"
                 className="nm-input"
+                placeholder="例: 新宿、横浜、地元の駅名でも OK"
                 value={value.area}
-                onChange={(e) => update("area", e.target.value as Area)}
-              >
-                {AREAS.map((a) => (
-                  <option key={a} value={a}>
-                    {a}
-                  </option>
+                onChange={(e) => update("area", e.target.value)}
+              />
+              <datalist id="nomiris-area-suggestions">
+                {AREA_SUGGESTIONS.map((a) => (
+                  <option key={a} value={a} />
                 ))}
-              </select>
+              </datalist>
             </div>
 
             <div>
@@ -79,11 +166,15 @@ export default function Step1ConditionForm({ value, onChange, onNext }: Props) {
                 id="cond-scene"
                 className="nm-input"
                 value={value.scene}
-                onChange={(e) => update("scene", e.target.value as Scene)}
+                onChange={(e) => {
+                  const opt = sceneOptions.find((o) => o.value === e.target.value);
+                  handleSelectScene(e.target.value, !!opt?.proGate);
+                }}
               >
-                {SCENES.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
+                {sceneOptions.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                    {s.proGate ? " (Pro)" : ""}
                   </option>
                 ))}
               </select>
@@ -143,6 +234,70 @@ export default function Step1ConditionForm({ value, onChange, onNext }: Props) {
                 </span>
                 <span>¥15,000</span>
               </div>
+            </div>
+
+            <div className="sm:col-span-2">
+              <label htmlFor="cond-date" className="nm-label">
+                希望日時（任意）
+              </label>
+              <input
+                id="cond-date"
+                className="nm-input"
+                placeholder="例: 来週金曜の19時、5/10〜5/15のいずれか"
+                value={value.desiredDate}
+                onChange={(e) => update("desiredDate", e.target.value)}
+              />
+              <p className="mt-1 text-[11px] text-nomiris-textSub">
+                提案文・メール文面に差し込まれます（任意）
+              </p>
+            </div>
+          </div>
+
+          {/* 雰囲気チップ */}
+          <div>
+            <span className="nm-label">雰囲気（複数選択可）</span>
+            <div className="flex flex-wrap gap-1.5">
+              {ATMOSPHERE_TAGS.map((tag) => {
+                const on = value.atmosphereTags.includes(tag);
+                return (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => toggleTag("atmosphereTags", tag)}
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
+                      on
+                        ? "border-nomiris-orange bg-nomiris-orange text-white"
+                        : "border-nomiris-line bg-white text-nomiris-brown hover:bg-nomiris-cream"
+                    }`}
+                  >
+                    {tag}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 重視することチップ */}
+          <div>
+            <span className="nm-label">重視すること（複数選択可）</span>
+            <div className="flex flex-wrap gap-1.5">
+              {IMPORTANT_TAGS.map((tag) => {
+                const on = value.importantTags.includes(tag);
+                return (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => toggleTag("importantTags", tag)}
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
+                      on
+                        ? "border-nomiris-orange bg-nomiris-orange text-white"
+                        : "border-nomiris-line bg-white text-nomiris-brown hover:bg-nomiris-cream"
+                    }`}
+                  >
+                    {tag}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -237,7 +392,7 @@ export default function Step1ConditionForm({ value, onChange, onNext }: Props) {
                 </div>
                 <div>
                   <label htmlFor="cond-atmosphere" className="nm-label">
-                    雰囲気
+                    雰囲気の補足
                   </label>
                   <input
                     id="cond-atmosphere"
