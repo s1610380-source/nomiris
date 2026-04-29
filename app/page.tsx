@@ -905,7 +905,7 @@ function PricingPreviewSection() {
     {
       title: "Free",
       price: "¥0",
-      unit: "/ 月",
+      unit: "/ ずっと無料",
       tagline: "友達との飲み会候補を気軽に整理。",
       features: [
         "カジュアル飲みモード",
@@ -919,8 +919,8 @@ function PricingPreviewSection() {
     },
     {
       title: "Pro",
-      price: "¥680",
-      unit: "/ 月",
+      price: "¥300",
+      unit: "/ 月（年¥3,000）",
       tagline: "仕事・会食・デートまでしっかりサポート。",
       features: [
         "全モード解放",
@@ -939,16 +939,19 @@ function PricingPreviewSection() {
       badge: "おすすめ",
     },
     {
-      title: "1 回チケット",
-      price: "¥200",
-      unit: "/ 1 回",
-      tagline: "たまに有料文面だけ使いたい人向け。",
+      title: "エンタープライズ",
+      price: "お問い合わせ",
+      unit: "ご要望に合わせて",
+      tagline: "チームでの導入・カスタマイズに。",
       features: [
-        "Pro 機能を 1 回だけ",
-        "サブスクなし",
-        "決済後 24 時間有効",
+        "Pro プランのすべて",
+        "チーム共有・複数ユーザー",
+        "専任サポート",
+        "SSO / SAML",
+        "監査ログ・データエクスポート",
+        "SLA・カスタム契約",
       ],
-      ctaLabel: "🎫 チケットを購入",
+      ctaLabel: "📩 ご相談する",
       ctaHref: "/pricing",
     },
   ];
@@ -1132,7 +1135,7 @@ function Footer() {
                 🐿️
               </span>
               <span className="font-extrabold tracking-tight text-white text-lg">
-                飲みリス
+                飲み<span className="text-amber-300">リス</span>
               </span>
             </div>
             <p className="mt-3 text-sm text-white/65 leading-relaxed max-w-sm">

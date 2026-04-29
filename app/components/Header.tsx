@@ -62,7 +62,7 @@ export default function Header() {
               🐿️
             </span>
             <span className="font-extrabold tracking-tight text-nomiris-brownDark text-lg sm:text-xl">
-              飲みリス
+              飲み<span className="text-nomiris-orange">リス</span>
             </span>
             {isPro && (
               <ProBadge className="hidden sm:inline-flex ml-1" />
