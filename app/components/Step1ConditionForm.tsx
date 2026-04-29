@@ -24,7 +24,6 @@ function toIntOrZero(v: string): number {
 
 export default function Step1ConditionForm({ value, onChange, onNext }: Props) {
   const [showDetail, setShowDetail] = useState(false);
-  const [touched, setTouched] = useState(false);
 
   const update = <K extends keyof EventCondition>(
     key: K,
@@ -33,12 +32,7 @@ export default function Step1ConditionForm({ value, onChange, onNext }: Props) {
     onChange({ ...value, [key]: val });
   };
 
-  const titleEmpty = !value.title.trim();
-  const canProceed = !titleEmpty;
-
   const handleNext = () => {
-    setTouched(true);
-    if (!canProceed) return;
     onNext();
   };
 
@@ -58,22 +52,6 @@ export default function Step1ConditionForm({ value, onChange, onNext }: Props) {
         </header>
 
         <div className="space-y-3">
-          <div>
-            <label htmlFor="cond-title" className="nm-label">
-              タイトル <span className="text-nomiris-orange">*</span>
-            </label>
-            <input
-              id="cond-title"
-              className="nm-input"
-              placeholder="例: 新宿1軒目候補案"
-              value={value.title}
-              onChange={(e) => update("title", e.target.value)}
-            />
-            {touched && titleEmpty && (
-              <p className="mt-1 text-xs text-red-600">タイトルを入力してください</p>
-            )}
-          </div>
-
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label htmlFor="cond-area" className="nm-label">
@@ -184,6 +162,23 @@ export default function Step1ConditionForm({ value, onChange, onNext }: Props) {
           {showDetail && (
             <div className="px-4 pb-4 space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="sm:col-span-2">
+                  <label htmlFor="cond-station" className="nm-label">
+                    最寄り駅
+                  </label>
+                  <input
+                    id="cond-station"
+                    className="nm-input"
+                    placeholder="例: 新宿三丁目、渋谷"
+                    value={value.nearestStation}
+                    onChange={(e) =>
+                      update("nearestStation", e.target.value)
+                    }
+                  />
+                  <p className="mt-1 text-[11px] text-nomiris-textSub">
+                    入力するとお店検索の精度が上がります（任意）
+                  </p>
+                </div>
                 <div>
                   <label htmlFor="cond-walk" className="nm-label">
                     駅徒歩分数（以内）
@@ -287,7 +282,6 @@ export default function Step1ConditionForm({ value, onChange, onNext }: Props) {
           type="button"
           className="nm-btn-primary"
           onClick={handleNext}
-          disabled={!canProceed}
         >
           次へ →
         </button>

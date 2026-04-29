@@ -11,11 +11,12 @@ export type Area = "新宿" | "渋谷" | "池袋" | "恵比寿" | "銀座";
 export type YesNoEither = "あり" | "なし" | "どちらでも";
 
 export interface EventCondition {
-  title: string;
   area: Area;
   scene: Scene;
   peopleCount: number;
   budgetLimit: number;
+  /** 詳細項目（任意）。最寄り駅名（例: "新宿駅"） */
+  nearestStation: string;
   walkingMinutes: number;
   nomihodai: YesNoEither;
   privateRoom: YesNoEither;

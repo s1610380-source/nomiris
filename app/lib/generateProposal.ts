@@ -121,9 +121,7 @@ function generateForTone(
   const sections: string[] = [];
   sections.push(tt.intro);
   sections.push(tt.premiseLead);
-  if (condition.title.trim()) {
-    sections.push(`〜${condition.title.trim()}〜`);
-  }
+  sections.push("〜お店候補〜");
   selected.forEach((r, i) => {
     sections.push(buildRestaurantBlock(r, i, tone));
   });

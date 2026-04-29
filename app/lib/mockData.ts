@@ -1,7 +1,7 @@
 import type { Area, EventCondition, Scene } from "./types";
 
 export const STORAGE_KEYS = {
-  condition: "nomiris.condition.v2",
+  condition: "nomiris.condition.v3",
 } as const;
 
 export const AREAS: Area[] = ["新宿", "渋谷", "池袋", "恵比寿", "銀座"];
@@ -15,11 +15,11 @@ export const SCENES: Scene[] = [
 ];
 
 export const DEFAULT_CONDITION: EventCondition = {
-  title: "新宿1軒目候補案",
   area: "新宿",
   scene: "会社飲み",
   peopleCount: 4,
   budgetLimit: 6000,
+  nearestStation: "",
   walkingMinutes: 10,
   nomihodai: "あり",
   privateRoom: "どちらでも",

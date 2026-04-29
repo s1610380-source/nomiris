@@ -6,8 +6,6 @@ import StepIndicator from "./components/StepIndicator";
 import Step1ConditionForm from "./components/Step1ConditionForm";
 import Step2Picker from "./components/Step2Picker";
 import Step3Proposal from "./components/Step3Proposal";
-import { CATALOG } from "./lib/catalog";
-import { pickCandidates } from "./lib/pick";
 import { DEFAULT_CONDITION, STORAGE_KEYS } from "./lib/mockData";
 import type { EventCondition, Restaurant } from "./lib/types";
 
@@ -52,10 +50,7 @@ export default function Home() {
   }, [step]);
 
   const goToStep2 = () => {
-    // ステップ1→2に進むタイミングで候補を自動ピック（既に候補がある場合はそのまま）
-    if (candidates.length === 0) {
-      setCandidates(pickCandidates(CATALOG, condition));
-    }
+    // 候補のロードは Step2Picker 側の useEffect で実行する（HotPepper API → fallback でカタログ）
     setStep(2);
   };
 
