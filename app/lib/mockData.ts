@@ -5,9 +5,10 @@ import type { EventCondition } from "./types";
  * v3 → v4: mode / atmosphereTags / importantTags / desiredDate を追加、
  *          area / scene を string 化。
  * v4 → v5: originStation（出発地）を追加（Pro 機能：Distance Matrix）。
+ * v5 → v6: areaCode（HotPepper のエリアコード）を追加（マスタ選択 UI）。
  */
 export const STORAGE_KEYS = {
-  condition: "nomiris.condition.v5",
+  condition: "nomiris.condition.v6",
   history: "nomiris.history.v1",
   plan: "nomiris.plan.v1",
 } as const;
@@ -42,6 +43,7 @@ export const SCENES: string[] = [
 export const DEFAULT_CONDITION: EventCondition = {
   mode: "casual",
   area: "新宿",
+  areaCode: "",
   scene: "友達飲み",
   peopleCount: 4,
   budgetLimit: 6000,

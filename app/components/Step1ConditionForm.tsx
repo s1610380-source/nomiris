@@ -14,7 +14,10 @@ import {
 } from "../lib/mode";
 import { usePlan } from "../lib/plan";
 import { useUpsell } from "./UpsellModal";
+import AreaPicker from "./AreaPicker";
 import ProBadge from "./ProBadge";
+
+type AreaInputMode = "master" | "free";
 
 const YES_NO_EITHER: YesNoEither[] = ["あり", "なし", "どちらでも"];
 
@@ -31,6 +34,8 @@ function toIntOrZero(v: string): number {
 
 export default function Step1ConditionForm({ value, onChange, onNext }: Props) {
   const [showDetail, setShowDetail] = useState(false);
+  // 「マスタから選ぶ」をデフォルト。ユーザーが自由入力に切替えた場合のみ "free"。
+  const [areaInputMode, setAreaInputMode] = useState<AreaInputMode>("master");
   const { isPro } = usePlan();
   const upsell = useUpsell();
 
@@ -139,23 +144,71 @@ export default function Step1ConditionForm({ value, onChange, onNext }: Props) {
 
         <div className="space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label htmlFor="cond-area" className="nm-label">
-                エリア（自由入力）
-              </label>
-              <input
-                id="cond-area"
-                list="nomiris-area-suggestions"
-                className="nm-input"
-                placeholder="例: 新宿、横浜、地元の駅名でも OK"
-                value={value.area}
-                onChange={(e) => update("area", e.target.value)}
-              />
-              <datalist id="nomiris-area-suggestions">
-                {AREA_SUGGESTIONS.map((a) => (
-                  <option key={a} value={a} />
-                ))}
-              </datalist>
+            <div className="sm:col-span-2">
+              <span className="nm-label">エリア</span>
+              {/* 選び方タブ */}
+              <div className="mb-2 flex gap-1 rounded-full bg-nomiris-cream p-1 text-xs font-semibold">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAreaInputMode("master");
+                  }}
+                  className={`flex-1 rounded-full px-3 py-1.5 transition ${
+                    areaInputMode === "master"
+                      ? "bg-white text-nomiris-brownDark shadow-sm"
+                      : "text-nomiris-textSub"
+                  }`}
+                >
+                  📋 マスタから選ぶ
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    // 自由入力に切り替えるときは areaCode をクリア
+                    onChange({ ...value, areaCode: "" });
+                    setAreaInputMode("free");
+                  }}
+                  className={`flex-1 rounded-full px-3 py-1.5 transition ${
+                    areaInputMode === "free"
+                      ? "bg-white text-nomiris-brownDark shadow-sm"
+                      : "text-nomiris-textSub"
+                  }`}
+                >
+                  ✏️ 自由入力
+                </button>
+              </div>
+
+              {areaInputMode === "master" ? (
+                <AreaPicker
+                  value={{ area: value.area, areaCode: value.areaCode }}
+                  onChange={(next) =>
+                    onChange({
+                      ...value,
+                      area: next.area,
+                      areaCode: next.areaCode,
+                    })
+                  }
+                />
+              ) : (
+                <div>
+                  <label htmlFor="cond-area" className="sr-only">
+                    エリア（自由入力）
+                  </label>
+                  <input
+                    id="cond-area"
+                    list="nomiris-area-suggestions"
+                    className="nm-input"
+                    placeholder="例: 新宿、横浜、地元の駅名でも OK"
+                    value={value.area}
+                    onChange={(e) => update("area", e.target.value)}
+                  />
+                  <datalist id="nomiris-area-suggestions">
+                    {AREA_SUGGESTIONS.map((a) => (
+                      <option key={a} value={a} />
+                    ))}
+                  </datalist>
+                </div>
+              )}
             </div>
 
             <div>

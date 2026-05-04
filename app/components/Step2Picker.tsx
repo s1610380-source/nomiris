@@ -100,6 +100,7 @@ export default function Step2Picker({
         params.set("station", condition.nearestStation.trim());
       }
       if (condition.area) params.set("area", condition.area);
+      if (condition.areaCode) params.set("areaCode", condition.areaCode);
       if (condition.budgetLimit > 0) {
         params.set("budget", String(condition.budgetLimit));
       }
@@ -137,6 +138,7 @@ export default function Step2Picker({
   }, [
     condition.nearestStation,
     condition.area,
+    condition.areaCode,
     condition.budgetLimit,
     condition.scene,
     fallbackToCatalog,

@@ -18,6 +18,8 @@ export interface EventCondition {
   /** モード（必須） */
   mode: Mode;
   area: Area;
+  /** HotPepper のエリアコード（middle / small / large）。マスタ選択時にセット。自由入力時は空。 */
+  areaCode: string;
   scene: Scene;
   peopleCount: number;
   budgetLimit: number;
