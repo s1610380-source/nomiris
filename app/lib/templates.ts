@@ -185,6 +185,8 @@ function premiseLine(condition: EventCondition): string {
   if (condition.area) parts.push(`エリア: ${condition.area}`);
   if (condition.nearestStation)
     parts.push(`最寄り駅: ${condition.nearestStation}`);
+  if (condition.originStation && condition.originStation.trim().length > 0)
+    parts.push(`出発地: ${condition.originStation.trim()}起点で徒歩分計算`);
   if (condition.peopleCount > 0) parts.push(`人数: ${condition.peopleCount}名`);
   if (condition.budgetLimit > 0)
     parts.push(`予算: ${condition.budgetLimit.toLocaleString()}円/人以内`);
@@ -195,6 +197,21 @@ function premiseLine(condition: EventCondition): string {
   if (condition.privateRoom !== "どちらでも")
     parts.push(`個室: ${condition.privateRoom}`);
   return parts.join(" / ");
+}
+
+/**
+ * 「{出発地}から徒歩 N 分（X km）」形式の文字列を返す。
+ * distanceFromOrigin 未セットなら空文字。
+ */
+function originDistanceLine(r: Restaurant): string {
+  const d = r.distanceFromOrigin;
+  if (!d) return "";
+  const labelBase = d.originLabel || "出発地";
+  const minPart =
+    d.walkMinutes > 0 ? `徒歩 ${d.walkMinutes} 分` : d.durationText || "";
+  const distPart = d.distanceText ? `（${d.distanceText}）` : "";
+  if (!minPart && !distPart) return "";
+  return `${labelBase}から${minPart}${distPart}`;
 }
 
 function shopShort(r: Restaurant): string {
@@ -234,11 +251,16 @@ function casualShopBlock(r: Restaurant, i: number): string {
 function businessShopBlock(r: Restaurant, i: number): string {
   const lines: string[] = [];
   lines.push(`${circled(i)} ${r.name}${r.genre ? `（${r.genre}）` : ""}`);
+  if (r.address && r.address.trim().length > 0) {
+    lines.push(`  ${r.address.trim()}`);
+  }
+  const distLine = originDistanceLine(r);
+  if (distLine) lines.push(`  ${distLine}`);
   if (hasUrl(r.url)) lines.push(`  URL: ${r.url.trim()}`);
   const meta = joinNonEmpty(
     [
       r.area && `エリア: ${r.area}`,
-      r.walkingMinutes > 0 ? `徒歩${r.walkingMinutes}分` : "",
+      r.walkingMinutes > 0 ? `最寄り駅 徒歩${r.walkingMinutes}分` : "",
       shopBudgetLine(r),
       r.hasNomihodai ? "飲み放題あり" : "",
       r.hasPrivateRoom ? "個室あり" : "",
@@ -256,6 +278,8 @@ function dateShopBlock(r: Restaurant, i: number): string {
   const lines: string[] = [];
   lines.push(`${circled(i)} ${r.emoji || "🍽️"} ${shopShort(r)}`);
   if (hasUrl(r.url)) lines.push(`  ${r.url.trim()}`);
+  const distLine = originDistanceLine(r);
+  if (distLine) lines.push(`  📏 ${distLine}`);
   const meta = joinNonEmpty(
     [
       r.area && `📍${r.area}`,

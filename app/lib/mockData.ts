@@ -4,9 +4,10 @@ import type { EventCondition } from "./types";
  * localStorage キー。EventCondition のスキーマ変更時はバージョンを bump する。
  * v3 → v4: mode / atmosphereTags / importantTags / desiredDate を追加、
  *          area / scene を string 化。
+ * v4 → v5: originStation（出発地）を追加（Pro 機能：Distance Matrix）。
  */
 export const STORAGE_KEYS = {
-  condition: "nomiris.condition.v4",
+  condition: "nomiris.condition.v5",
   history: "nomiris.history.v1",
   plan: "nomiris.plan.v1",
 } as const;
@@ -54,4 +55,5 @@ export const DEFAULT_CONDITION: EventCondition = {
   participants: "",
   avoidPoints: "",
   desiredDate: "",
+  originStation: "",
 };

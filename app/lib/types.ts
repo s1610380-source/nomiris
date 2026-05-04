@@ -38,6 +38,8 @@ export interface EventCondition {
   avoidPoints: string;
   /** 希望日時（自由入力テキスト） */
   desiredDate: string;
+  /** 出発地（住所 or 駅名）。Pro 機能で各候補店との徒歩分計算に使う */
+  originStation: string;
 }
 
 export interface Restaurant {
@@ -62,6 +64,14 @@ export interface Restaurant {
   selected: boolean;
   /** 住所（HotPepper 由来の店のみ。カタログは未設定でよい） */
   address?: string;
+  /** 出発地から店舗までの距離（Pro で取得時のみセット） */
+  distanceFromOrigin?: {
+    walkMinutes: number;
+    walkMeters: number;
+    distanceText: string; // "6.7 km" など、UI 表示用
+    durationText: string; // "1 時間 34 分" など、UI 表示用
+    originLabel: string; // 表示用の出発地ラベル
+  };
 }
 
 /** id/selected を持たないカタログ用エントリ。pickCandidates で id/selected を付与する */

@@ -15,6 +15,7 @@ import {
   saveHistory,
   type HistoryEntry,
 } from "../lib/history";
+import { fetchDistances } from "../lib/distance";
 import ProBadge from "./ProBadge";
 import ProLock from "./ProLock";
 import { useUpsell } from "./UpsellModal";
@@ -32,13 +33,92 @@ export default function Step3Proposal({
   onBack,
   onRestart,
 }: Props) {
-  const selected = useMemo(
-    () => candidates.filter((r) => r.selected),
-    [candidates],
-  );
-
   const { plan, isPro } = usePlan();
   const upsell = useUpsell();
+
+  // Pro で出発地が入力されている場合、Distance Matrix で距離を取得して
+  // selected な候補にマージする。元の candidates は書き換えない。
+  const [enriched, setEnriched] = useState<Restaurant[]>(candidates);
+  const [distanceLoading, setDistanceLoading] = useState(false);
+  const [distanceError, setDistanceError] = useState<string | null>(null);
+
+  // candidates が変わったら enriched をリセット → 再フェッチ
+  useEffect(() => {
+    setEnriched(candidates);
+    setDistanceError(null);
+  }, [candidates]);
+
+  const originStationTrimmed = condition.originStation.trim();
+
+  // selected かつ distanceFromOrigin 未設定のものがある場合に取得
+  useEffect(() => {
+    if (!isPro) return;
+    if (!originStationTrimmed) return;
+
+    const targets = enriched.filter(
+      (r) => r.selected && !r.distanceFromOrigin,
+    );
+    if (targets.length === 0) return;
+
+    let cancelled = false;
+    setDistanceLoading(true);
+    setDistanceError(null);
+
+    const destinations = targets.map((r) => {
+      const addr = (r.address ?? "").trim();
+      if (addr) return addr;
+      const areaPart = r.area ? ` ${r.area}` : "";
+      return `${r.name}${areaPart}`.trim();
+    });
+
+    fetchDistances(originStationTrimmed, destinations, "walking")
+      .then((res) => {
+        if (cancelled) return;
+        if (!res.ok) {
+          setDistanceError(res.error ?? "unknown");
+          setDistanceLoading(false);
+          return;
+        }
+        const originLabel = res.origin || originStationTrimmed;
+        const byId = new Map<string, Restaurant>();
+        targets.forEach((r, i) => {
+          const el = res.elements[i];
+          if (!el || el.status !== "OK") return;
+          byId.set(r.id, {
+            ...r,
+            distanceFromOrigin: {
+              walkMinutes: el.durationMinutes,
+              walkMeters: el.distanceMeters,
+              distanceText: el.distanceText,
+              durationText: el.durationText,
+              originLabel,
+            },
+          });
+        });
+        if (byId.size === 0) {
+          setDistanceLoading(false);
+          return;
+        }
+        setEnriched((prev) =>
+          prev.map((r) => (byId.has(r.id) ? byId.get(r.id)! : r)),
+        );
+        setDistanceLoading(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setDistanceError("fetch_failed");
+        setDistanceLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [enriched, isPro, originStationTrimmed]);
+
+  const selected = useMemo(
+    () => enriched.filter((r) => r.selected),
+    [enriched],
+  );
 
   const templates = useMemo<TemplateMeta[]>(
     () => templatesForMode(condition.mode),
@@ -127,6 +207,16 @@ export default function Step3Proposal({
           {!isPro && condition.mode === "casual" && (
             <p className="mt-2 text-[11px] text-amber-700">
               ✨ 仕事・会食 / デートモードに切り替えると、メールや LINE の文面テンプレが Pro 機能として使えます。
+            </p>
+          )}
+          {isPro && originStationTrimmed && distanceLoading && (
+            <p className="mt-2 text-[11px] text-amber-800">
+              📏 徒歩距離を計算中…
+            </p>
+          )}
+          {isPro && originStationTrimmed && distanceError && (
+            <p className="mt-2 text-[11px] text-amber-800/90">
+              ⚠️ Google Maps API が未設定または失敗しました。徒歩分はお店情報の access テキストを使用します。
             </p>
           )}
         </header>

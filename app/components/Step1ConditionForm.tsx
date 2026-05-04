@@ -377,6 +377,27 @@ export default function Step1ConditionForm({ value, onChange, onNext }: Props) {
                     入力するとお店検索の精度が上がります（任意）
                   </p>
                 </div>
+                <div className="sm:col-span-2">
+                  <label
+                    htmlFor="cond-origin"
+                    className="nm-label flex items-center gap-1.5"
+                  >
+                    <span>出発地（任意）</span>
+                    <ProBadge className="!text-[9px] !px-1.5" />
+                  </label>
+                  <input
+                    id="cond-origin"
+                    className="nm-input"
+                    placeholder="例: 新宿駅、自宅最寄り、東京駅"
+                    value={value.originStation}
+                    onChange={(e) =>
+                      update("originStation", e.target.value)
+                    }
+                  />
+                  <p className="mt-1 text-[11px] text-nomiris-textSub">
+                    出発地から各候補店までの徒歩◯分・距離を提案文に自動挿入します（Pro）
+                  </p>
+                </div>
                 <div>
                   <label htmlFor="cond-walk" className="nm-label">
                     駅徒歩分数（以内）

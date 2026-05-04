@@ -9,6 +9,7 @@
 - 用途に合わせて 3 モード（カジュアル飲み / 仕事・会食 / デート）を選び
 - 候補店をピックして比較し
 - LINE / Slack / メールにそのまま貼れる **提案文を 1 クリックで生成** します。
+- **Pro 専用機能：出発地からの徒歩距離自動挿入**（Google Distance Matrix 連携）— 出発地（自宅最寄り駅・住所）から各候補店までの徒歩分・距離をビジネス系 / デート系のテンプレに自動差し込み。
 
 店舗検索・空席確認・予約・AI 連携などは **行いません**。あくまで「メモして整える」ための、実用的な MVP ツールです。
 
@@ -39,7 +40,7 @@
 | スタイル | Tailwind CSS v3 |
 | UI | React 19、スマホファースト |
 | 永続化 | ブラウザの `localStorage` |
-| 外部 API | HotPepper Gourmet Search API（候補取得） |
+| 外部 API | HotPepper Gourmet Search API（候補取得） / Google Distance Matrix API（Pro：徒歩距離） |
 | 決済 | Stripe / PayPay（API ルートは scaffold のみ、未実装） |
 
 ## ローカル起動方法
@@ -73,6 +74,9 @@ npm run lint   # ESLint チェック
 # HotPepper Gourmet Search API（実候補の取得に使う。未設定の場合は組み込みカタログにフォールバック）
 HOTPEPPER_API_KEY=
 
+# Google Maps Distance Matrix API（Pro 機能：出発地からの徒歩距離計算。未設定なら HotPepper の access テキストへ自動フォールバック）
+GOOGLE_MAPS_API_KEY=
+
 # 将来用：決済プロバイダ。未設定の場合は dev モードで localStorage に書き込むだけ。
 STRIPE_SECRET_KEY=
 PAYPAY_API_KEY=
@@ -85,7 +89,7 @@ PAYPAY_API_KEY=
 
 ## localStorage キー
 
-- `nomiris.condition.v4` — 入力中の条件（モード追加に伴い v3 → v4）
+- `nomiris.condition.v5` — 入力中の条件（v4 → v5：出発地 originStation を追加）
 - `nomiris.plan.v1` — 現在のプラン（`free` / `pro`）
 - `nomiris.history.v1` — 提案文の生成履歴
 
@@ -131,9 +135,11 @@ nomiris/
 │  │  ├─ history.ts               # 履歴保存・読み込み
 │  │  ├─ plan.ts                  # usePlan / Plan 型
 │  │  ├─ mode.ts                  # MODE_LABELS / SCENE_OPTIONS_BY_MODE 等
+│  │  ├─ distance.ts              # Distance Matrix フロント側ラッパー（Pro）
 │  │  └─ checkout.ts              # 決済セッション開始（フロント）
 │  ├─ api/
 │  │  ├─ hotpepper/route.ts       # HotPepper Gourmet API プロキシ
+│  │  ├─ distance/route.ts        # Google Distance Matrix プロキシ（Pro）
 │  │  └─ checkout/route.ts        # Stripe / PayPay scaffold（未実装）
 │  ├─ pricing/page.tsx            # 料金プランページ
 │  ├─ history/page.tsx            # 履歴ページ
