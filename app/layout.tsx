@@ -1,19 +1,17 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { UpsellProvider } from "./components/UpsellModal";
+import ServiceWorkerRegistrar from "./components/ServiceWorkerRegistrar";
 
 export const metadata: Metadata = {
   title: "飲みリス🐿️",
   description: "飲み会・会食の候補案を、きれいに一発作成。",
   manifest: "/manifest.json",
-  icons: {
-    icon: "/icon.svg",
-    apple: "/icon.svg",
-  },
+  // icons は app/icon.tsx / app/apple-icon.tsx から自動挿入される PNG に任せる
   appleWebApp: {
     capable: true,
     title: "飲みリス",
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
   },
 };
 
@@ -32,6 +30,7 @@ export default function RootLayout({
     <html lang="ja" className="h-full">
       <body className="min-h-full bg-nomiris-bg text-nomiris-textMain">
         <UpsellProvider>{children}</UpsellProvider>
+        <ServiceWorkerRegistrar />
       </body>
     </html>
   );

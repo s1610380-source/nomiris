@@ -1,13 +1,15 @@
 {
   "name": "飲みリス",
   "short_name": "飲みリス",
-  "description": "飲み会候補、サクッとまとめる。",
+  "description": "飲み会・会食の候補案を、きれいに一発作成。",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#FAF6EE",
   "theme_color": "#E8843B",
   "lang": "ja",
+  "categories": ["productivity", "lifestyle"],
+  "orientation": "portrait",
   "icons": [
     {
       "src": "/icon.svg",

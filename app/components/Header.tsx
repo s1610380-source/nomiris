@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePlan } from "../lib/plan";
 import ProBadge from "./ProBadge";
+import InstallButton from "./InstallButton";
 
 interface NavItem {
   href: string;
@@ -89,6 +90,7 @@ export default function Header() {
           </nav>
 
           <div className="flex items-center gap-2">
+            <InstallButton className="hidden sm:inline-flex items-center justify-center gap-1 rounded-full border border-nomiris-line bg-white text-nomiris-brownDark font-bold px-3 py-2 text-xs lg:text-sm shadow-sm hover:bg-nomiris-cream transition" />
             <Link
               href="/app"
               className="hidden md:inline-flex items-center justify-center gap-1 rounded-full bg-nomiris-orange text-white font-bold px-4 lg:px-5 py-2 lg:py-2.5 text-sm shadow-sm hover:bg-nomiris-orangeDark transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
@@ -166,6 +168,10 @@ export default function Header() {
           >
             🐿️ 無料で作る
           </Link>
+
+          <div className="mt-2 flex justify-center">
+            <InstallButton className="inline-flex items-center justify-center gap-1 rounded-full border border-nomiris-line bg-white text-nomiris-brownDark font-bold px-4 py-2.5 text-sm shadow-sm hover:bg-nomiris-cream transition" />
+          </div>
         </div>
       </div>
     </header>
