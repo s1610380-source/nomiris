@@ -188,8 +188,15 @@ function premiseLine(condition: EventCondition): string {
   if (condition.originStation && condition.originStation.trim().length > 0)
     parts.push(`出発地: ${condition.originStation.trim()}起点で徒歩分計算`);
   if (condition.peopleCount > 0) parts.push(`人数: ${condition.peopleCount}名`);
-  if (condition.budgetLimit > 0)
-    parts.push(`予算: ${condition.budgetLimit.toLocaleString()}円/人以内`);
+  const min = condition.budgetMin > 0 ? condition.budgetMin : 0;
+  const max = condition.budgetMax > 0 ? condition.budgetMax : 0;
+  if (min === 0 && max > 0) {
+    parts.push(`予算: 〜${max.toLocaleString()}円/人`);
+  } else if (min > 0 && max === 0) {
+    parts.push(`予算: ${min.toLocaleString()}円〜/人`);
+  } else if (min > 0 && max > 0) {
+    parts.push(`予算: ${min.toLocaleString()}〜${max.toLocaleString()}円/人`);
+  }
   if (condition.desiredDate)
     parts.push(`希望日時: ${formatDesiredDate(condition.desiredDate)}`);
   if (condition.nomihodai !== "どちらでも")

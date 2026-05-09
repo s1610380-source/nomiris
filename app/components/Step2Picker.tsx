@@ -43,10 +43,22 @@ function pickRandom(pool: Restaurant[], count: number): Restaurant[] {
   return shuffled.slice(0, Math.min(count, shuffled.length));
 }
 
-/** 予算上限でフィルタ。budgetMax が 0（未取得）は通す。 */
-function filterByBudget(shops: Restaurant[], limit: number): Restaurant[] {
-  if (!Number.isFinite(limit) || limit <= 0) return shops;
-  return shops.filter((s) => s.budgetMax === 0 || s.budgetMax <= limit);
+/** 予算範囲でフィルタ。budgetMax が 0（未取得）は通す。 */
+function filterByBudgetRange(
+  shops: Restaurant[],
+  min: number,
+  max: number,
+): Restaurant[] {
+  const minSafe = Number.isFinite(min) && min > 0 ? min : 0;
+  const maxSafe = Number.isFinite(max) && max > 0 ? max : 0;
+  if (minSafe === 0 && maxSafe === 0) return shops;
+  return shops.filter((s) => {
+    // 価格情報なしの店は通す
+    if (s.budgetMax === 0) return true;
+    if (maxSafe > 0 && s.budgetMax > maxSafe) return false;
+    if (minSafe > 0 && s.budgetMax < minSafe) return false;
+    return true;
+  });
 }
 
 /** 評価値をパース */
@@ -101,8 +113,11 @@ export default function Step2Picker({
       }
       if (condition.area) params.set("area", condition.area);
       if (condition.areaCode) params.set("areaCode", condition.areaCode);
-      if (condition.budgetLimit > 0) {
-        params.set("budget", String(condition.budgetLimit));
+      if (condition.budgetMin > 0) {
+        params.set("budgetMin", String(condition.budgetMin));
+      }
+      if (condition.budgetMax > 0) {
+        params.set("budgetMax", String(condition.budgetMax));
       }
       if (condition.scene) params.set("scene", condition.scene);
 
@@ -119,7 +134,11 @@ export default function Step2Picker({
         return;
       }
 
-      const filtered = filterByBudget(json.shops, condition.budgetLimit);
+      const filtered = filterByBudgetRange(
+        json.shops,
+        condition.budgetMin,
+        condition.budgetMax,
+      );
       const pool = filtered.length > 0 ? filtered : json.shops;
 
       if (pool.length === 0) {
@@ -139,7 +158,8 @@ export default function Step2Picker({
     condition.nearestStation,
     condition.area,
     condition.areaCode,
-    condition.budgetLimit,
+    condition.budgetMin,
+    condition.budgetMax,
     condition.scene,
     fallbackToCatalog,
     setCandidates,

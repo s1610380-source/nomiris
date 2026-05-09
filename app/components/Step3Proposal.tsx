@@ -16,6 +16,7 @@ import {
   type HistoryEntry,
 } from "../lib/history";
 import { fetchDistances } from "../lib/distance";
+import { STORAGE_KEYS } from "../lib/mockData";
 import ProBadge from "./ProBadge";
 import ProLock from "./ProLock";
 import { useUpsell } from "./UpsellModal";
@@ -24,7 +25,10 @@ interface Props {
   condition: EventCondition;
   candidates: Restaurant[];
   onBack: () => void;
+  /** 別の会で新しく作る（条件もリセット） */
   onRestart: () => void;
+  /** 同じ条件でもう一度（条件は維持して Step1 へ） */
+  onRestartSameCondition?: () => void;
 }
 
 export default function Step3Proposal({
@@ -32,6 +36,7 @@ export default function Step3Proposal({
   candidates,
   onBack,
   onRestart,
+  onRestartSameCondition,
 }: Props) {
   const { plan, isPro } = usePlan();
   const upsell = useUpsell();
@@ -142,6 +147,11 @@ export default function Step3Proposal({
     setTexts(buildAll);
   }, [buildAll]);
 
+  const showToast = (msg: string) => {
+    setToast(msg);
+    window.setTimeout(() => setToast(null), 3200);
+  };
+
   // 履歴保存（生成タイミングで保存）。同一マウント内で 1 回だけ
   const savedRef = useRef(false);
   useEffect(() => {
@@ -156,13 +166,20 @@ export default function Step3Proposal({
       generatedTexts: buildAll,
     };
     saveHistory(entry, plan);
+    // 履歴保存トースト（初回のみ）
+    try {
+      const seen =
+        window.localStorage.getItem(STORAGE_KEYS.historyToastShown) === "1";
+      if (!seen) {
+        const suffix = !isPro ? "（Free は最新 1 件のみ保持）" : "";
+        showToast(`📂 履歴に保存しました${suffix}`);
+        window.localStorage.setItem(STORAGE_KEYS.historyToastShown, "1");
+      }
+    } catch {
+      /* noop */
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const showToast = (msg: string) => {
-    setToast(msg);
-    window.setTimeout(() => setToast(null), 2400);
-  };
 
   const handleCopy = async (id: TemplateId) => {
     const text = texts[id];
@@ -296,13 +313,24 @@ export default function Step3Proposal({
         </section>
       )}
 
-      <div className="flex justify-between gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <button type="button" className="nm-btn-ghost" onClick={onBack}>
           ← 候補を選び直す
         </button>
-        <button type="button" className="nm-btn-secondary" onClick={onRestart}>
-          🐿️ 最初から
-        </button>
+        <div className="flex flex-wrap gap-2 sm:justify-end">
+          {onRestartSameCondition && (
+            <button
+              type="button"
+              className="nm-btn-secondary"
+              onClick={onRestartSameCondition}
+            >
+              ↩︎ 同じ条件でもう一度
+            </button>
+          )}
+          <button type="button" className="nm-btn-secondary" onClick={onRestart}>
+            🆕 別の会で新しく作る
+          </button>
+        </div>
       </div>
 
       {toast && (

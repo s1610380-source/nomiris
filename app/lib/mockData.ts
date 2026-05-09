@@ -6,11 +6,16 @@ import type { EventCondition } from "./types";
  *          area / scene を string 化。
  * v4 → v5: originStation（出発地）を追加（Pro 機能：Distance Matrix）。
  * v5 → v6: areaCode（HotPepper のエリアコード）を追加（マスタ選択 UI）。
+ * v6 → v7: budgetLimit を budgetMin / budgetMax の範囲指定に置き換え。
  */
 export const STORAGE_KEYS = {
-  condition: "nomiris.condition.v6",
+  condition: "nomiris.condition.v7",
   history: "nomiris.history.v1",
   plan: "nomiris.plan.v1",
+  /** 「前回の条件」バナーの非表示フラグ（同セッション内で一度閉じたら抑制） */
+  lastConditionBannerDismissed: "nomiris.lastConditionBannerDismissed.v1",
+  /** 「履歴に保存しました」トーストの初回表示フラグ */
+  historyToastShown: "nomiris.historyToastShown.v1",
 } as const;
 
 /** エリアの suggestion（datalist で使う。自由入力可） */
@@ -46,7 +51,8 @@ export const DEFAULT_CONDITION: EventCondition = {
   areaCode: "",
   scene: "友達飲み",
   peopleCount: 4,
-  budgetLimit: 6000,
+  budgetMin: 3000,
+  budgetMax: 6000,
   nearestStation: "",
   walkingMinutes: 10,
   nomihodai: "あり",

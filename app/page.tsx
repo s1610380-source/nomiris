@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Header from "./components/Header";
+import InstallButton from "./components/InstallButton";
 
 /* =====================================================================
  * 飲みリス🐿️ ランディングページ
@@ -206,6 +207,11 @@ function Hero() {
               >
                 Pro 機能を見る →
               </Link>
+            </div>
+
+            {/* PWA インストール案内（Android: prompt / iOS: 案内シート / standalone: 自動非表示） */}
+            <div className="pt-1">
+              <InstallButton className="inline-flex items-center justify-center gap-1.5 rounded-full border border-nomiris-orange/40 bg-white text-nomiris-orangeDark font-bold px-4 py-2 text-xs sm:text-sm shadow-sm hover:bg-nomiris-cream transition" />
             </div>
 
             <div className="flex items-center gap-4 pt-2 text-xs text-nomiris-textSub">
@@ -1200,7 +1206,11 @@ function Footer() {
           </div>
         </div>
 
-        <div className="mt-10 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-white/50">
+        <div className="mt-8 flex flex-wrap items-center gap-2">
+          <InstallButton className="inline-flex items-center justify-center gap-1 rounded-full border border-white/30 bg-white/10 text-white font-bold px-3 py-1.5 text-xs hover:bg-white/20 transition" />
+        </div>
+
+        <div className="mt-6 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-white/50">
           <span>© 2026 飲みリス</span>
           <span>データはブラウザの localStorage にのみ保存されます</span>
         </div>

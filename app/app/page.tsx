@@ -1,9 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Header from "../components/Header";
 import HomeHero from "../components/HomeHero";
+import InstallButton from "../components/InstallButton";
+import RestoreBanner from "../components/RestoreBanner";
 import StepIndicator from "../components/StepIndicator";
 import Step1ConditionForm from "../components/Step1ConditionForm";
 import Step2Picker from "../components/Step2Picker";
@@ -76,7 +79,15 @@ function AppPageInner() {
   const goBackToStep1 = () => setStep(1);
   const goBackToStep2 = () => setStep(2);
 
+  /** Step3 の「別の会で新しく作る」: 候補と条件をリセットして Step1 へ */
   const handleRestart = () => {
+    setCandidates([]);
+    setCondition(DEFAULT_CONDITION);
+    setStep(1);
+  };
+
+  /** Step3 の「同じ条件でもう一度」: 条件は保持して Step1 へ戻す */
+  const handleRestartSameCondition = () => {
     setCandidates([]);
     setStep(1);
   };
@@ -117,11 +128,23 @@ function AppPageInner() {
       <main className="flex-1">
         <div className="mx-auto max-w-2xl px-4 py-5">
           {step === 1 && (
-            <Step1ConditionForm
-              value={condition}
-              onChange={setCondition}
-              onNext={goToStep2}
-            />
+            <div className="space-y-4">
+              <RestoreBanner
+                current={condition}
+                onUseExisting={() => {
+                  /* 何もしない（既存条件を維持） */
+                }}
+                onCreateNew={() => {
+                  setCondition(DEFAULT_CONDITION);
+                  setCandidates([]);
+                }}
+              />
+              <Step1ConditionForm
+                value={condition}
+                onChange={setCondition}
+                onNext={goToStep2}
+              />
+            </div>
           )}
           {step === 2 && (
             <Step2Picker
@@ -138,10 +161,22 @@ function AppPageInner() {
               candidates={candidates}
               onBack={goBackToStep2}
               onRestart={handleRestart}
+              onRestartSameCondition={handleRestartSameCondition}
             />
           )}
 
-          <p className="pt-6 pb-8 text-center text-xs text-nomiris-textSub">
+          {/* /app フッター: 履歴リンク + Install ボタン */}
+          <div className="pt-8 pb-3 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link
+              href="/history"
+              className="inline-flex items-center justify-center gap-1 rounded-full border border-nomiris-line bg-white text-nomiris-brownDark font-bold px-4 py-2 text-xs sm:text-sm shadow-sm hover:bg-nomiris-cream transition"
+            >
+              📂 履歴を見る
+            </Link>
+            <InstallButton />
+          </div>
+
+          <p className="pt-2 pb-8 text-center text-xs text-nomiris-textSub">
             🐿️ 飲みリス — データはこの端末の localStorage にのみ保存されます。
           </p>
         </div>

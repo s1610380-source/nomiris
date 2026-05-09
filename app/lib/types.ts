@@ -22,7 +22,10 @@ export interface EventCondition {
   areaCode: string;
   scene: Scene;
   peopleCount: number;
-  budgetLimit: number;
+  /** 予算下限（円/人）。0 はノーガード */
+  budgetMin: number;
+  /** 予算上限（円/人）。0 はノーガード */
+  budgetMax: number;
   /** 詳細項目（任意）。最寄り駅名（例: "新宿駅"） */
   nearestStation: string;
   walkingMinutes: number;

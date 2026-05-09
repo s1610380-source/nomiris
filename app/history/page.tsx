@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Header from "../components/Header";
 import ProBadge from "../components/ProBadge";
@@ -11,8 +12,10 @@ import {
   loadHistory,
   type HistoryEntry,
 } from "../lib/history";
+import { STORAGE_KEYS } from "../lib/mockData";
 import { MODE_EMOJIS, MODE_LABELS } from "../lib/mode";
 import { usePlan } from "../lib/plan";
+import type { EventCondition } from "../lib/types";
 
 function formatDate(ts: number): string {
   const d = new Date(ts);
@@ -27,6 +30,7 @@ function formatDate(ts: number): string {
 export default function HistoryPage() {
   const { isPro, hydrated } = usePlan();
   const upsell = useUpsell();
+  const router = useRouter();
   const [entries, setEntries] = useState<HistoryEntry[]>([]);
   const [hydratedHistory, setHydratedHistory] = useState(false);
 
@@ -45,6 +49,24 @@ export default function HistoryPage() {
     if (!confirm("すべての履歴を削除しますか？")) return;
     clearHistory();
     setEntries([]);
+  };
+
+  /** 履歴の condition を /app の localStorage に書き込み、/app へ遷移する */
+  const handleRestore = (cond: EventCondition) => {
+    try {
+      window.localStorage.setItem(
+        STORAGE_KEYS.condition,
+        JSON.stringify(cond),
+      );
+      // バナーを再度出さないよう抑制（同セッション内）
+      window.sessionStorage.setItem(
+        STORAGE_KEYS.lastConditionBannerDismissed,
+        "1",
+      );
+    } catch {
+      /* noop */
+    }
+    router.push("/app");
   };
 
   const visibleEntries = isPro ? entries : entries.slice(0, 1);
@@ -95,7 +117,11 @@ export default function HistoryPage() {
             <ul className="space-y-3">
               {visibleEntries.map((e) => (
                 <li key={e.id}>
-                  <HistoryCard entry={e} onDelete={() => handleDelete(e.id)} />
+                  <HistoryCard
+                    entry={e}
+                    onDelete={() => handleDelete(e.id)}
+                    onRestore={() => handleRestore(e.condition)}
+                  />
                 </li>
               ))}
               {hiddenCount > 0 && (
@@ -140,16 +166,36 @@ export default function HistoryPage() {
   );
 }
 
+function formatBudgetRange(c: EventCondition): string | null {
+  // 後方互換: budgetLimit が残っている古い履歴も読み込めるよう any キャストでフォールバック
+  const legacy = (c as unknown as { budgetLimit?: number }).budgetLimit ?? 0;
+  const min = c.budgetMin ?? 0;
+  const max = c.budgetMax ?? 0;
+  if (min === 0 && max === 0 && legacy === 0) return null;
+  if (min === 0 && max === 0 && legacy > 0) {
+    return `〜¥${legacy.toLocaleString()}/人`;
+  }
+  if (min > 0 && max > 0) {
+    return `¥${min.toLocaleString()}〜¥${max.toLocaleString()}/人`;
+  }
+  if (min === 0 && max > 0) return `〜¥${max.toLocaleString()}/人`;
+  if (min > 0 && max === 0) return `¥${min.toLocaleString()}〜/人`;
+  return null;
+}
+
 function HistoryCard({
   entry,
   onDelete,
+  onRestore,
 }: {
   entry: HistoryEntry;
   onDelete: () => void;
+  onRestore: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const c = entry.condition;
   const restaurantCount = entry.restaurants.filter((r) => r.selected).length;
+  const budgetText = formatBudgetRange(c);
 
   return (
     <div className="nm-card space-y-2">
@@ -183,19 +229,26 @@ function HistoryCard({
         {c.peopleCount > 0 && (
           <span className="nm-chip">👥 {c.peopleCount}名</span>
         )}
-        {c.budgetLimit > 0 && (
-          <span className="nm-chip">¥{c.budgetLimit.toLocaleString()}/人</span>
-        )}
+        {budgetText && <span className="nm-chip">{budgetText}</span>}
         <span className="nm-chip">候補 {restaurantCount} 件</span>
       </div>
 
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="text-xs font-semibold text-nomiris-orange hover:underline"
-      >
-        {open ? "詳細を閉じる" : "詳細を見る"}
-      </button>
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={onRestore}
+          className="inline-flex items-center justify-center gap-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold px-3 py-1.5 text-xs shadow-sm hover:from-amber-600 hover:to-orange-600 transition"
+        >
+          🔁 この条件で再開
+        </button>
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="text-xs font-semibold text-nomiris-orange hover:underline"
+        >
+          {open ? "詳細を閉じる" : "詳細を見る"}
+        </button>
+      </div>
 
       {open && (
         <div className="space-y-3 pt-2 border-t border-nomiris-line/60">

@@ -22,7 +22,12 @@ export async function GET(request: Request) {
   const station = (searchParams.get("station") ?? "").trim();
   const area = (searchParams.get("area") ?? "").trim();
   const areaCode = (searchParams.get("areaCode") ?? "").trim();
+  // 旧 `budget` も受け取りつつ、新しい範囲指定 `budgetMin` / `budgetMax` も受け付ける。
+  // HotPepper 側の budget パラメータは単一コードなので、サーバー側ではフィルタせず
+  // クライアント側で範囲フィルタを行う。
   const budgetParam = searchParams.get("budget");
+  const budgetMinParam = searchParams.get("budgetMin");
+  const budgetMaxParam = searchParams.get("budgetMax");
   // scene は現時点では HotPepper への問い合わせには使わない（将来の拡張用）
   // const scene = (searchParams.get("scene") ?? "").trim();
 
@@ -77,10 +82,12 @@ export async function GET(request: Request) {
     params.set("keyword", station);
   }
 
-  // budget は省略（クライアント側で budgetMax フィルタ）
+  // budget は省略（クライアント側で budgetMin / budgetMax フィルタ）
   // budgetLimit が極端に小さい場合のみ HotPepper の budget code を付ける、という選択肢もあるが
   // 実装簡略化のため、HotPepper には予算指定を投げず多めに取得する。
   void budgetParam;
+  void budgetMinParam;
+  void budgetMaxParam;
 
   const url = `${HOTPEPPER_ENDPOINT}?${params.toString()}`;
 

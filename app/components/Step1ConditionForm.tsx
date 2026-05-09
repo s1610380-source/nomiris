@@ -277,42 +277,108 @@ export default function Step1ConditionForm({ value, onChange, onNext }: Props) {
             </div>
 
             <div>
-              <label htmlFor="cond-budget" className="nm-label">
-                予算上限（円/人）
-              </label>
-              <input
-                id="cond-budget"
-                type="number"
-                inputMode="numeric"
-                min={0}
-                step={500}
-                className="nm-input"
-                value={value.budgetLimit === 0 ? "" : value.budgetLimit}
-                onChange={(e) =>
-                  update("budgetLimit", toIntOrZero(e.target.value))
-                }
-              />
-              <input
-                aria-label="予算スライダー"
-                type="range"
-                min={2000}
-                max={15000}
-                step={500}
-                className="mt-2 w-full accent-nomiris-orange"
-                value={value.budgetLimit}
-                onChange={(e) =>
-                  update("budgetLimit", toIntOrZero(e.target.value))
-                }
-              />
+              <span className="nm-label">予算（円/人）</span>
+              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                <input
+                  id="cond-budget-min"
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  step={500}
+                  className="nm-input"
+                  placeholder="下限"
+                  aria-label="予算下限（0 で指定なし）"
+                  value={value.budgetMin === 0 ? "" : value.budgetMin}
+                  onChange={(e) => {
+                    const next = toIntOrZero(e.target.value);
+                    // 下限が上限を超える場合は上限を引き上げて補正
+                    const max =
+                      value.budgetMax > 0 && next > value.budgetMax
+                        ? next
+                        : value.budgetMax;
+                    onChange({ ...value, budgetMin: next, budgetMax: max });
+                  }}
+                />
+                <span className="text-nomiris-textSub text-sm font-bold">
+                  〜
+                </span>
+                <input
+                  id="cond-budget-max"
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  step={500}
+                  className="nm-input"
+                  placeholder="上限"
+                  aria-label="予算上限（0 で指定なし）"
+                  value={value.budgetMax === 0 ? "" : value.budgetMax}
+                  onChange={(e) => {
+                    const next = toIntOrZero(e.target.value);
+                    // 上限が下限を下回る場合は下限を引き下げて補正
+                    const min =
+                      next > 0 && value.budgetMin > next
+                        ? next
+                        : value.budgetMin;
+                    onChange({ ...value, budgetMin: min, budgetMax: next });
+                  }}
+                />
+              </div>
+              <div className="mt-3 space-y-2">
+                <div>
+                  <input
+                    aria-label="予算下限スライダー"
+                    type="range"
+                    min={0}
+                    max={15000}
+                    step={500}
+                    className="w-full accent-nomiris-orange"
+                    value={value.budgetMin}
+                    onChange={(e) => {
+                      const next = toIntOrZero(e.target.value);
+                      const max =
+                        value.budgetMax > 0 && next > value.budgetMax
+                          ? next
+                          : value.budgetMax;
+                      onChange({ ...value, budgetMin: next, budgetMax: max });
+                    }}
+                  />
+                </div>
+                <div>
+                  <input
+                    aria-label="予算上限スライダー"
+                    type="range"
+                    min={0}
+                    max={15000}
+                    step={500}
+                    className="w-full accent-nomiris-orange"
+                    value={value.budgetMax}
+                    onChange={(e) => {
+                      const next = toIntOrZero(e.target.value);
+                      const min =
+                        next > 0 && value.budgetMin > next
+                          ? next
+                          : value.budgetMin;
+                      onChange({ ...value, budgetMin: min, budgetMax: next });
+                    }}
+                  />
+                </div>
+              </div>
               <div className="mt-1 flex justify-between text-[10px] text-nomiris-textSub">
-                <span>¥2,000</span>
+                <span>¥0</span>
                 <span className="font-semibold text-nomiris-brown">
-                  {value.budgetLimit > 0
-                    ? `¥${value.budgetLimit.toLocaleString()}`
-                    : "未設定"}
+                  {value.budgetMin > 0
+                    ? `¥${value.budgetMin.toLocaleString()}`
+                    : "指定なし"}
+                  {" 〜 "}
+                  {value.budgetMax > 0
+                    ? `¥${value.budgetMax.toLocaleString()}`
+                    : "指定なし"}
                 </span>
                 <span>¥15,000</span>
               </div>
+              <p className="mt-1 text-[11px] text-nomiris-textSub">
+                0 にすると「指定なし」になります（下限・上限とも）。
+              </p>
             </div>
 
             <div className="sm:col-span-2">

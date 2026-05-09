@@ -36,9 +36,16 @@ export function pickCandidates(
       ? Math.max(1, Math.floor(count))
       : 3 + Math.floor(Math.random() * 3); // 3,4,5
 
-  // 1. 予算オーバーは除外
-  const budgetLimit = condition.budgetLimit > 0 ? condition.budgetLimit : Infinity;
-  const inBudget = catalog.filter((c) => c.budgetMin <= budgetLimit);
+  // 1. 予算範囲でフィルタ（min は 0=ノーガード、max も 0=ノーガード）
+  const minBudget = condition.budgetMin > 0 ? condition.budgetMin : 0;
+  const maxBudget = condition.budgetMax > 0 ? condition.budgetMax : Infinity;
+  const inBudget = catalog.filter((c) => {
+    // budgetMax が 0（未設定）の店は除外せず通す
+    if (c.budgetMax === 0) return true;
+    if (c.budgetMax > maxBudget) return false;
+    if (minBudget > 0 && c.budgetMax < minBudget) return false;
+    return true;
+  });
 
   // 2. エリア完全一致でフィルタ
   const sameArea = inBudget.filter((c) => c.area === condition.area);
