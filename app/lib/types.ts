@@ -79,6 +79,8 @@ export interface Restaurant {
   selected: boolean;
   /** 住所（HotPepper 由来の店のみ。カタログは未設定でよい） */
   address?: string;
+  /** 店舗写真 URL（HotPepper 由来。カタログ店は未設定でよい） */
+  photoUrl?: string;
   /** 出発地から店舗までの距離（Pro で取得時のみセット） */
   distanceFromOrigin?: {
     walkMinutes: number;

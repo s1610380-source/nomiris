@@ -39,6 +39,22 @@ export interface HotPepperShop {
    * 値が空 / 未設定の店もある。
    */
   non_smoking?: string;
+  /**
+   * 店舗写真 URL（PC 用 / モバイル用、L / M / S）。
+   * https://webservice.recruit.co.jp/doc/hotpepper/reference.html
+   */
+  photo?: {
+    pc?: {
+      l?: string;
+      m?: string;
+      s?: string;
+    };
+    mobile?: {
+      l?: string;
+      s?: string;
+    };
+  };
+  logo_image?: string;
 }
 
 export interface HotPepperResponse {
@@ -173,6 +189,13 @@ export function convertToRestaurant(shop: HotPepperShop): Restaurant {
   const memo = (shop.catch || shop.genre?.catch || "").trim();
   const recommendPoint = (shop.genre?.catch || "").trim();
 
+  // 店舗写真: PC L → PC M → モバイル L の順でフォールバック
+  const photoUrl =
+    shop.photo?.pc?.l ||
+    shop.photo?.pc?.m ||
+    shop.photo?.mobile?.l ||
+    undefined;
+
   return {
     id: shop.id,
     name: shop.name,
@@ -193,6 +216,7 @@ export function convertToRestaurant(shop: HotPepperShop): Restaurant {
     selected: true,
     address: (shop.address ?? "").trim(),
     smokingStatus: parseSmokingStatus(shop.non_smoking),
+    photoUrl,
   };
 }
 

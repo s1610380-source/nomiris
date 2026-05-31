@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { EventCondition, Restaurant, SmokingFilter } from "../lib/types";
 import { CATALOG } from "../lib/catalog";
@@ -479,6 +480,7 @@ function CompareTable({ rows, lockedExtras, isPro, onToggle, onUpsell }: Compare
         <thead className="bg-nomiris-cream text-nomiris-brown">
           <tr>
             <th className="p-2 text-left font-bold">選択</th>
+            <th className="p-2 text-center font-bold">📸</th>
             <th className="p-2 text-left font-bold">店名</th>
             <th className="p-2 text-left font-bold">予算</th>
             <th className="p-2 text-left font-bold">エリア</th>
@@ -486,6 +488,7 @@ function CompareTable({ rows, lockedExtras, isPro, onToggle, onUpsell }: Compare
             <th className="p-2 text-left font-bold">ジャンル</th>
             <th className="p-2 text-center font-bold">個室</th>
             <th className="p-2 text-center font-bold">飲放</th>
+            <th className="p-2 text-center font-bold whitespace-nowrap">🚬 喫煙</th>
             <th className="p-2 text-left font-bold">おすすめ度</th>
             <th className="p-2 text-left font-bold whitespace-nowrap">
               <span className="inline-flex items-center gap-1">
@@ -518,6 +521,24 @@ function CompareTable({ rows, lockedExtras, isPro, onToggle, onUpsell }: Compare
                     aria-label={`${r.name}を選択`}
                   />
                 </td>
+                <td className="p-2 align-top text-center">
+                  {r.photoUrl ? (
+                    <span className="relative inline-block h-12 w-12 overflow-hidden rounded-md border border-nomiris-line/70 bg-nomiris-cream">
+                      <Image
+                        src={r.photoUrl}
+                        alt={`${r.name} の写真`}
+                        fill
+                        sizes="48px"
+                        className="object-cover"
+                        unoptimized
+                      />
+                    </span>
+                  ) : (
+                    <span className="text-lg" aria-hidden>
+                      {r.emoji || "🍽️"}
+                    </span>
+                  )}
+                </td>
                 <td className="p-2 align-top font-bold text-nomiris-brownDark whitespace-nowrap">
                   {r.emoji} {r.name}
                 </td>
@@ -532,6 +553,26 @@ function CompareTable({ rows, lockedExtras, isPro, onToggle, onUpsell }: Compare
                 </td>
                 <td className="p-2 align-top text-center">
                   {r.hasNomihodai ? "○" : "—"}
+                </td>
+                <td className="p-2 align-top text-center whitespace-nowrap">
+                  {r.smokingStatus === "可" && (
+                    <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+                      喫煙可
+                    </span>
+                  )}
+                  {r.smokingStatus === "不可" && (
+                    <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                      全席禁煙
+                    </span>
+                  )}
+                  {r.smokingStatus === "分煙" && (
+                    <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-bold text-sky-800">
+                      分煙
+                    </span>
+                  )}
+                  {(!r.smokingStatus || r.smokingStatus === "不明") && (
+                    <span className="text-nomiris-textSub">—</span>
+                  )}
                 </td>
                 <td className="p-2 align-top whitespace-nowrap">
                   {ratingNum(r) > 0 ? `★ ${ratingNum(r).toFixed(1)}` : "—"}
@@ -585,7 +626,7 @@ function CompareTable({ rows, lockedExtras, isPro, onToggle, onUpsell }: Compare
           {!isPro &&
             lockedExtras.map((r) => (
               <tr key={r.id} className="border-t border-amber-200/60 bg-amber-50/40">
-                <td colSpan={12} className="p-2">
+                <td colSpan={14} className="p-2">
                   <button
                     type="button"
                     onClick={onUpsell}

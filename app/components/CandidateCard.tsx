@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import type { Restaurant } from "../lib/types";
 
 interface Props {
@@ -43,11 +44,31 @@ export default function CandidateCard({ restaurant, onToggle, onDelete }: Props)
             aria-label={`${r.name}を選択`}
           />
         </label>
+        {r.photoUrl ? (
+          <a
+            href={isRealUrl(r.url) ? r.url : r.photoUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="relative block h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-nomiris-line/70 bg-nomiris-cream sm:h-20 sm:w-20"
+            aria-label={`${r.name}の写真を見る`}
+          >
+            <Image
+              src={r.photoUrl}
+              alt={`${r.name} の写真`}
+              fill
+              sizes="(max-width: 640px) 64px, 80px"
+              className="object-cover"
+              unoptimized
+            />
+          </a>
+        ) : null}
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-            <span className="text-lg" aria-hidden>
-              {r.emoji || "🍽️"}
-            </span>
+            {!r.photoUrl && (
+              <span className="text-lg" aria-hidden>
+                {r.emoji || "🍽️"}
+              </span>
+            )}
             <h3 className="text-base font-bold text-nomiris-brownDark break-all">
               {r.name}
             </h3>
