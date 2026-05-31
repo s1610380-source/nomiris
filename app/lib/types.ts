@@ -14,6 +14,12 @@ export type Scene = string;
 
 export type YesNoEither = "あり" | "なし" | "どちらでも";
 
+/** 条件側: 利用者の喫煙ポリシー希望 */
+export type SmokingFilter = "可" | "不可" | "どちらでも";
+
+/** 店舗側: 実際の喫煙ポリシー（HotPepper の non_smoking から判定） */
+export type SmokingStatus = "可" | "不可" | "分煙" | "不明";
+
 export interface EventCondition {
   /** モード（必須） */
   mode: Mode;
@@ -31,6 +37,8 @@ export interface EventCondition {
   walkingMinutes: number;
   nomihodai: YesNoEither;
   privateRoom: YesNoEither;
+  /** 喫煙ポリシーの希望（HotPepper の店舗情報をもとに絞り込み） */
+  smokingPolicy: SmokingFilter;
   /** 雰囲気（多選択） */
   atmosphereTags: string[];
   /** 重視すること（多選択） */
@@ -62,6 +70,8 @@ export interface Restaurant {
   walkingMinutes: number;
   hasNomihodai: boolean;
   hasPrivateRoom: boolean;
+  /** 店舗の喫煙ポリシー（HotPepper の non_smoking から判定。カタログは未設定でよい） */
+  smokingStatus?: SmokingStatus;
   memo: string;
   recommendPoint: string;
   cautionPoint: string;

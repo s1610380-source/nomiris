@@ -74,6 +74,21 @@ export default function CandidateCard({ restaurant, onToggle, onDelete }: Props)
                 個室
               </span>
             )}
+            {r.smokingStatus === "可" && (
+              <span className="nm-chip border-amber-200 bg-amber-50 text-amber-800">
+                🚬 喫煙可
+              </span>
+            )}
+            {r.smokingStatus === "不可" && (
+              <span className="nm-chip border-emerald-200 bg-emerald-50 text-emerald-800">
+                🚭 全席禁煙
+              </span>
+            )}
+            {r.smokingStatus === "分煙" && (
+              <span className="nm-chip border-sky-200 bg-sky-50 text-sky-800">
+                🚬🚭 分煙
+              </span>
+            )}
           </div>
           {r.address && (
             <p className="mt-2 text-xs text-nomiris-textSub break-all">

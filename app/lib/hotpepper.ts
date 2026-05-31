@@ -1,4 +1,4 @@
-import type { Restaurant } from "./types";
+import type { Restaurant, SmokingStatus } from "./types";
 
 /**
  * HotPepper Gourmet Search API のレスポンス型（必要な部分のみ）。
@@ -34,6 +34,11 @@ export interface HotPepperShop {
   };
   free_drink?: string;
   private_room?: string;
+  /**
+   * 公式: "全面禁煙" / "禁煙席なし" / "分煙" / "禁煙席あり" 等。
+   * 値が空 / 未設定の店もある。
+   */
+  non_smoking?: string;
 }
 
 export interface HotPepperResponse {
@@ -110,6 +115,41 @@ export function parseBudget(
   return { min: 0, max: 0 };
 }
 
+/**
+ * HotPepper の non_smoking 文字列を SmokingStatus に変換する。
+ * 公式に出てくる代表値:
+ *   "全面禁煙"     → 全席禁煙 = 不可
+ *   "禁煙席なし"   → 喫煙可
+ *   "分煙"         → 分煙
+ *   "禁煙席あり"   → 分煙扱い
+ *   ""（未設定）   → 不明
+ */
+export function parseSmokingStatus(ns: string | undefined): SmokingStatus {
+  const v = (ns ?? "").trim();
+  if (!v) return "不明";
+  // 「全面禁煙」「全席禁煙」「禁煙」だけ → 不可
+  if (v.includes("全面禁煙") || v.includes("全席禁煙") || v === "禁煙") {
+    return "不可";
+  }
+  // 「禁煙席なし」「喫煙可」「喫煙OK」 → 可
+  if (
+    v.includes("禁煙席なし") ||
+    v.includes("喫煙可") ||
+    v.includes("喫煙OK")
+  ) {
+    return "可";
+  }
+  // 「分煙」「禁煙席あり」「喫煙席あり」など → 分煙
+  if (
+    v.includes("分煙") ||
+    v.includes("禁煙席あり") ||
+    v.includes("喫煙席あり")
+  ) {
+    return "分煙";
+  }
+  return "不明";
+}
+
 /** access テキストから「徒歩 N 分」を抽出する。「徒歩約N分」「徒歩 N分」も拾う */
 export function parseWalkingMinutes(access: string | undefined): number {
   const s = access ?? "";
@@ -152,6 +192,7 @@ export function convertToRestaurant(shop: HotPepperShop): Restaurant {
     emoji,
     selected: true,
     address: (shop.address ?? "").trim(),
+    smokingStatus: parseSmokingStatus(shop.non_smoking),
   };
 }
 

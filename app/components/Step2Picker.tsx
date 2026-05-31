@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { EventCondition, Restaurant } from "../lib/types";
+import type { EventCondition, Restaurant, SmokingFilter } from "../lib/types";
 import { CATALOG } from "../lib/catalog";
 import { pickCandidates } from "../lib/pick";
 import { usePlan } from "../lib/plan";
@@ -57,6 +57,27 @@ function filterByBudgetRange(
     if (s.budgetMax === 0) return true;
     if (maxSafe > 0 && s.budgetMax > maxSafe) return false;
     if (minSafe > 0 && s.budgetMax < minSafe) return false;
+    return true;
+  });
+}
+
+/**
+ * 喫煙ポリシーでフィルタ。
+ * - "どちらでも": フィルタなし
+ * - "可":  smokingStatus が "可" / "分煙" を残す（不明は除外）
+ * - "不可": smokingStatus が "不可" / "分煙" を残す（不明は除外）
+ * 注意: smokingStatus を持たない（カタログ由来などの）店は不明扱い。
+ */
+function filterBySmokingPolicy(
+  shops: Restaurant[],
+  policy: SmokingFilter,
+): Restaurant[] {
+  if (policy === "どちらでも") return shops;
+  return shops.filter((s) => {
+    const status = s.smokingStatus;
+    if (!status || status === "不明") return false;
+    if (policy === "可") return status === "可" || status === "分煙";
+    if (policy === "不可") return status === "不可" || status === "分煙";
     return true;
   });
 }
@@ -134,12 +155,20 @@ export default function Step2Picker({
         return;
       }
 
-      const filtered = filterByBudgetRange(
+      const budgetFiltered = filterByBudgetRange(
         json.shops,
         condition.budgetMin,
         condition.budgetMax,
       );
-      const pool = filtered.length > 0 ? filtered : json.shops;
+      const afterBudget =
+        budgetFiltered.length > 0 ? budgetFiltered : json.shops;
+      // 喫煙フィルタは HotPepper 由来の shops にのみ適用。
+      // 該当 0 件になる場合は喫煙フィルタを実質スキップして候補が空にならないようにする。
+      const smokingFiltered = filterBySmokingPolicy(
+        afterBudget,
+        condition.smokingPolicy,
+      );
+      const pool = smokingFiltered.length > 0 ? smokingFiltered : afterBudget;
 
       if (pool.length === 0) {
         fallbackToCatalog();
@@ -161,6 +190,7 @@ export default function Step2Picker({
     condition.budgetMin,
     condition.budgetMax,
     condition.scene,
+    condition.smokingPolicy,
     fallbackToCatalog,
     setCandidates,
     targetCount,

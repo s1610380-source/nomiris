@@ -1,7 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import type { EventCondition, Mode, YesNoEither } from "../lib/types";
+import type {
+  EventCondition,
+  Mode,
+  SmokingFilter,
+  YesNoEither,
+} from "../lib/types";
 import { AREA_SUGGESTIONS } from "../lib/mockData";
 import {
   ALL_MODES,
@@ -572,6 +577,29 @@ export default function Step1ConditionForm({ value, onChange, onNext }: Props) {
                       </option>
                     ))}
                   </select>
+                </div>
+                <div>
+                  <label htmlFor="cond-smoking" className="nm-label">
+                    喫煙
+                  </label>
+                  <select
+                    id="cond-smoking"
+                    className="nm-input"
+                    value={value.smokingPolicy}
+                    onChange={(e) =>
+                      update(
+                        "smokingPolicy",
+                        e.target.value as SmokingFilter,
+                      )
+                    }
+                  >
+                    <option value="どちらでも">どちらでも</option>
+                    <option value="可">喫煙可</option>
+                    <option value="不可">全席禁煙</option>
+                  </select>
+                  <p className="mt-1 text-[10px] text-nomiris-textSub">
+                    HotPepper の店舗情報をもとに絞り込みます
+                  </p>
                 </div>
                 <div>
                   <label htmlFor="cond-atmosphere" className="nm-label">

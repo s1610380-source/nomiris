@@ -203,6 +203,8 @@ function premiseLine(condition: EventCondition): string {
     parts.push(`飲み放題: ${condition.nomihodai}`);
   if (condition.privateRoom !== "どちらでも")
     parts.push(`個室: ${condition.privateRoom}`);
+  if (condition.smokingPolicy === "可") parts.push("喫煙: 可");
+  else if (condition.smokingPolicy === "不可") parts.push("喫煙: 全席禁煙");
   return parts.join(" / ");
 }
 

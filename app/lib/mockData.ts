@@ -7,9 +7,10 @@ import type { EventCondition } from "./types";
  * v4 → v5: originStation（出発地）を追加（Pro 機能：Distance Matrix）。
  * v5 → v6: areaCode（HotPepper のエリアコード）を追加（マスタ選択 UI）。
  * v6 → v7: budgetLimit を budgetMin / budgetMax の範囲指定に置き換え。
+ * v7 → v8: smokingPolicy（喫煙ポリシーの希望）を追加。
  */
 export const STORAGE_KEYS = {
-  condition: "nomiris.condition.v7",
+  condition: "nomiris.condition.v8",
   history: "nomiris.history.v1",
   plan: "nomiris.plan.v1",
   /** 「前回の条件」バナーの非表示フラグ（同セッション内で一度閉じたら抑制） */
@@ -57,6 +58,7 @@ export const DEFAULT_CONDITION: EventCondition = {
   walkingMinutes: 10,
   nomihodai: "あり",
   privateRoom: "どちらでも",
+  smokingPolicy: "どちらでも",
   atmosphereTags: [],
   importantTags: [],
   atmosphere: "",
