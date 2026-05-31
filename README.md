@@ -12,7 +12,18 @@
 - **全国エリア対応**：HotPepper の 大エリア / 中エリア / 小エリア マスタ API でカスケード選択。新宿だけでなく全国どこでも候補取得が可能。自由入力モードへの切替もワンタップ。
 - **Pro 専用機能：出発地からの徒歩距離自動挿入**（Google Distance Matrix 連携）— 出発地（自宅最寄り駅・住所）から各候補店までの徒歩分・距離をビジネス系 / デート系のテンプレに自動差し込み。
 
-店舗検索・空席確認・予約・AI 連携などは **行いません**。あくまで「メモして整える」ための、実用的な MVP ツールです。
+店舗検索・空席確認・予約は **行いません**。提案文の AI リライト（OpenAI）はオプション機能で、`OPENAI_API_KEY` 未設定時は組み込みテンプレートにフォールバックします。あくまで「メモして整える」ための、実用的な MVP ツールです。
+
+## Pro 機能（6 つの大物機能）
+
+| 機能 | プラン | 仕組み |
+| --- | --- | --- |
+| 🗺 **地図ビュー** | Pro | Step2 の「📍 地図」タブで候補店を地図ピンに表示。Leaflet + OpenStreetMap タイル（CDN 経由、依存追加なし）。 |
+| 📄 **PDF 出力** | Pro | Step3 の「📄 PDF として保存」でブラウザの印刷ダイアログを開き、「PDF として保存」を選ぶだけで A4 PDF を保存。 |
+| 📅 **Google Calendar 連携** | Free | Step3 の「📅 Google Calendar に追加」で、Google Calendar の予定編集ページを新タブで開く。タイトル・詳細・場所・日時を自動仕込み。 |
+| 🔗 **共有 URL 発行** | Pro | Step3 の「🔗 共有 URL をコピー」で `/app?shared=<base64>` を発行。サーバー保存なしで、相手は同じ条件・候補を見られる。 |
+| 🤖 **AI 文面リライト** | Pro | 各テンプレの「✨ AI で書き直す」で OpenAI（gpt-4o-mini）に文面を投げて自然な日本語に。`OPENAI_API_KEY` 未設定時は案内表示のみ。 |
+| 💳 **Stripe 実決済** | — | `/pricing` の「Pro にアップグレード」で Stripe Checkout Session を作成。`STRIPE_SECRET_KEY` と price ID が設定されていなければ dev モード（localStorage 切替）。 |
 
 すべてのデータはブラウザの `localStorage` にのみ保存されるため、サーバー・アカウントは不要です。
 
@@ -78,10 +89,31 @@ HOTPEPPER_API_KEY=
 # Google Maps Distance Matrix API（Pro 機能：出発地からの徒歩距離計算。未設定なら HotPepper の access テキストへ自動フォールバック）
 GOOGLE_MAPS_API_KEY=
 
-# 将来用：決済プロバイダ。未設定の場合は dev モードで localStorage に書き込むだけ。
+# OpenAI（Pro 機能：AI 文面リライト）。未設定なら /api/ai は openai_not_configured を返し、フロントは既存テンプレ（mock）にフォールバック。
+OPENAI_API_KEY=
+
+# Stripe（実決済）。SECRET_KEY と price ID が両方そろっていれば本物の Checkout Session を作成し、
+# 未設定なら dev モード（localStorage を pro に書き込む）にフォールバック。
 STRIPE_SECRET_KEY=
+STRIPE_PRICE_ID_PRO_MONTHLY=
+STRIPE_PRICE_ID_PRO_ANNUAL=
+STRIPE_PRICE_ID_TICKET=
+
+# PayPay（未実装。scaffold のみ）
 PAYPAY_API_KEY=
 ```
+
+### 環境変数まとめ
+
+| 変数 | 必須 | 用途 | 未設定時の挙動 |
+| --- | --- | --- | --- |
+| `HOTPEPPER_API_KEY` | 任意 | HotPepper Gourmet Search の候補取得 | 組み込みカタログにフォールバック |
+| `GOOGLE_MAPS_API_KEY` | 任意 | Pro：出発地からの徒歩距離 | access テキストから推定 |
+| `OPENAI_API_KEY` | 任意 | Pro：AI 文面リライト | `openai_not_configured` を返してフロントが案内 |
+| `STRIPE_SECRET_KEY` | 任意 | 実決済 | dev モード（localStorage 切替） |
+| `STRIPE_PRICE_ID_PRO_MONTHLY` | 任意 | Pro 月額 price ID | dev モード |
+| `STRIPE_PRICE_ID_PRO_ANNUAL` | 任意 | Pro 年額 price ID | dev モード |
+| `STRIPE_PRICE_ID_TICKET` | 任意 | 1 回チケット price ID | dev モード |
 
 ## 開発時のプランリセット手順
 
