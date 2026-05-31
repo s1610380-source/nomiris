@@ -34,6 +34,9 @@ export interface HotPepperShop {
   };
   free_drink?: string;
   private_room?: string;
+  /** 緯度・経度（HotPepper Gourmet Search API のレスポンスに含まれる） */
+  lat?: number;
+  lng?: number;
   /**
    * 公式: "全面禁煙" / "禁煙席なし" / "分煙" / "禁煙席あり" 等。
    * 値が空 / 未設定の店もある。
@@ -196,6 +199,15 @@ export function convertToRestaurant(shop: HotPepperShop): Restaurant {
     shop.photo?.mobile?.l ||
     undefined;
 
+  const lat =
+    typeof shop.lat === "number" && Number.isFinite(shop.lat)
+      ? shop.lat
+      : undefined;
+  const lng =
+    typeof shop.lng === "number" && Number.isFinite(shop.lng)
+      ? shop.lng
+      : undefined;
+
   return {
     id: shop.id,
     name: shop.name,
@@ -217,6 +229,8 @@ export function convertToRestaurant(shop: HotPepperShop): Restaurant {
     address: (shop.address ?? "").trim(),
     smokingStatus: parseSmokingStatus(shop.non_smoking),
     photoUrl,
+    lat,
+    lng,
   };
 }
 

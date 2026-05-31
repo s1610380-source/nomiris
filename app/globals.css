@@ -72,3 +72,44 @@ textarea {
            disabled:opacity-50 disabled:cursor-not-allowed;
   }
 }
+
+/* PDF 出力（ブラウザの印刷 → PDF として保存）用 */
+@media print {
+  header,
+  footer,
+  .no-print {
+    display: none !important;
+  }
+  .nm-card {
+    border: 1px solid #ddd !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+    background: #ffffff !important;
+  }
+  body,
+  html {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  a {
+    color: #000000 !important;
+    text-decoration: underline;
+  }
+  /* textarea は印刷時にも内容を見せたい */
+  textarea {
+    border: 1px solid #ddd !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    overflow: visible !important;
+    height: auto !important;
+    min-height: 0 !important;
+    white-space: pre-wrap !important;
+    page-break-inside: avoid;
+  }
+  /* Pro ロック・トースト・モーダル等は非表示 */
+  [role="dialog"],
+  [role="status"] {
+    display: none !important;
+  }
+}
+

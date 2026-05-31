@@ -17,6 +17,9 @@ import {
 } from "../lib/history";
 import { fetchDistances } from "../lib/distance";
 import { STORAGE_KEYS } from "../lib/mockData";
+import { buildCalendarUrl, tryParseDesiredDate } from "../lib/calendar";
+import { encodeShare } from "../lib/share";
+import { rewriteWithAI } from "../lib/aiProvider";
 import ProBadge from "./ProBadge";
 import ProLock from "./ProLock";
 import { useUpsell } from "./UpsellModal";
@@ -141,6 +144,7 @@ export default function Step3Proposal({
 
   const [texts, setTexts] = useState<Record<string, string>>(buildAll);
   const [toast, setToast] = useState<string | null>(null);
+  const [aiLoadingId, setAiLoadingId] = useState<TemplateId | null>(null);
 
   // 条件・候補・モードが変わったら再生成（編集はリセット）
   useEffect(() => {
@@ -180,6 +184,114 @@ export default function Step3Proposal({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handlePrintPdf = () => {
+    if (typeof window === "undefined") return;
+    window.print();
+  };
+
+  /** Google Calendar の予定追加ページを新タブで開く */
+  const handleAddToCalendar = () => {
+    if (typeof window === "undefined") return;
+    const namesPart = selected.length > 0
+      ? `（候補: ${selected[0].name}${selected.length > 1 ? ` ほか ${selected.length - 1} 件` : ""}）`
+      : "";
+    const title = `${condition.scene || "飲み会"}${namesPart}`;
+
+    // 詳細: 各候補の店名・URL を簡潔にリスト
+    const lines: string[] = [];
+    lines.push(`🐿️ 飲みリスからのご案内`);
+    if (condition.scene) lines.push(`シーン: ${condition.scene}`);
+    if (condition.area) lines.push(`エリア: ${condition.area}`);
+    if (condition.peopleCount > 0) lines.push(`人数: ${condition.peopleCount} 人`);
+    if (condition.budgetMin > 0 || condition.budgetMax > 0) {
+      lines.push(
+        `予算: ${condition.budgetMin > 0 ? `¥${condition.budgetMin.toLocaleString()}` : ""}〜${condition.budgetMax > 0 ? `¥${condition.budgetMax.toLocaleString()}` : ""}/人`,
+      );
+    }
+    if (selected.length > 0) {
+      lines.push("");
+      lines.push("候補店:");
+      selected.forEach((r, i) => {
+        lines.push(
+          `${i + 1}. ${r.emoji || "🍴"} ${r.name}${r.area ? `（${r.area}）` : ""}${r.url ? ` ${r.url}` : ""}`,
+        );
+      });
+    }
+    const details = lines.join("\n");
+
+    const location = selected.length > 0
+      ? selected[0].address || selected[0].area || ""
+      : "";
+
+    // 開始・終了時刻: condition.desiredDate を parse できなければ「翌日 19:00 〜 21:30」
+    const parsed = tryParseDesiredDate(condition.desiredDate);
+    let start: Date;
+    let end: Date;
+    if (parsed) {
+      start = parsed;
+      end = new Date(parsed.getTime() + 2.5 * 60 * 60 * 1000);
+    } else {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(19, 0, 0, 0);
+      start = tomorrow;
+      end = new Date(tomorrow.getTime() + 2.5 * 60 * 60 * 1000);
+    }
+
+    const url = buildCalendarUrl({ title, details, location, start, end });
+    window.open(url, "_blank", "noopener,noreferrer");
+    showToast("📅 Google Calendar を開きました");
+  };
+
+  /** 共有 URL（Pro） */
+  const handleCopyShareUrl = async () => {
+    try {
+      const encoded = encodeShare({ condition, restaurants: candidates });
+      const url = `${window.location.origin}/app?shared=${encoded}`;
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        const ta = document.createElement("textarea");
+        ta.value = url;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+      }
+      showToast("📋 共有 URL をコピーしました");
+    } catch {
+      showToast("共有 URL のコピーに失敗しました…");
+    }
+  };
+
+  /** OpenAI で文面を書き直す（Pro） */
+  const handleAiRewrite = async (id: TemplateId, toneHint: string) => {
+    const text = texts[id];
+    if (!text) return;
+    setAiLoadingId(id);
+    try {
+      const res = await rewriteWithAI(text, toneHint);
+      if (!res.ok) {
+        if (res.error === "openai_not_configured") {
+          showToast(
+            "AI 接続未設定です（環境変数 OPENAI_API_KEY を設定してください）",
+          );
+        } else {
+          showToast("AI 接続に失敗しました");
+        }
+        return;
+      }
+      setTexts((prev) => ({ ...prev, [id]: res.text }));
+      showToast("✨ AI が書き直しました");
+    } catch {
+      showToast("AI 接続に失敗しました");
+    } finally {
+      setAiLoadingId(null);
+    }
+  };
 
   const handleCopy = async (id: TemplateId) => {
     const text = texts[id];
@@ -236,6 +348,72 @@ export default function Step3Proposal({
               ⚠️ Google Maps API が未設定または失敗しました。徒歩分はお店情報の access テキストを使用します。
             </p>
           )}
+
+          {/* 出力ツールバー（PDF / Google Calendar / 共有 URL） */}
+          <div className="mt-3 flex flex-wrap gap-2 no-print">
+            {/* PDF 出力（Pro） */}
+            {isPro ? (
+              <button
+                type="button"
+                onClick={handlePrintPdf}
+                className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-900 hover:bg-amber-100 transition"
+                title="ブラウザの印刷ダイアログで「PDF として保存」を選んでください"
+              >
+                📄 PDF として保存
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() =>
+                  upsell.open({
+                    title: "PDF 出力は Pro 機能です",
+                    description:
+                      "提案文を A4 PDF に書き出して、紙でも共有できます。",
+                  })
+                }
+                className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50/60 px-3 py-1.5 text-xs font-bold text-amber-800/80 hover:bg-amber-100 transition"
+              >
+                📄 PDF として保存
+                <ProBadge className="!text-[9px] !px-1.5 ml-0.5" />
+              </button>
+            )}
+
+            {/* Google Calendar（Free でも使える） */}
+            <button
+              type="button"
+              onClick={handleAddToCalendar}
+              className="inline-flex items-center gap-1 rounded-full border border-nomiris-line bg-white px-3 py-1.5 text-xs font-bold text-nomiris-brownDark hover:bg-nomiris-cream transition"
+              title="Google Calendar の編集画面が新しいタブで開きます"
+            >
+              📅 Google Calendar に追加
+            </button>
+
+            {/* 共有 URL（Pro） */}
+            {isPro ? (
+              <button
+                type="button"
+                onClick={handleCopyShareUrl}
+                className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-900 hover:bg-amber-100 transition"
+              >
+                🔗 共有 URL をコピー
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() =>
+                  upsell.open({
+                    title: "共有 URL は Pro 機能です",
+                    description:
+                      "条件と候補をそのまま貼り付けられる URL を発行できます（サーバー保存なし）。",
+                  })
+                }
+                className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50/60 px-3 py-1.5 text-xs font-bold text-amber-800/80 hover:bg-amber-100 transition"
+              >
+                🔗 共有 URL をコピー
+                <ProBadge className="!text-[9px] !px-1.5 ml-0.5" />
+              </button>
+            )}
+          </div>
         </header>
       </section>
 
@@ -254,13 +432,42 @@ export default function Step3Proposal({
                 <p className="mt-0.5 text-xs text-nomiris-textSub">{tpl.hint}</p>
               </div>
               {!locked && (
-                <button
-                  type="button"
-                  className="nm-btn-primary !py-2 !px-3 text-sm shrink-0"
-                  onClick={() => handleCopy(tpl.id)}
-                >
-                  📋 コピー
-                </button>
+                <div className="flex flex-wrap gap-1.5 shrink-0 no-print">
+                  {/* AI で書き直す（Pro） */}
+                  {isPro ? (
+                    <button
+                      type="button"
+                      onClick={() => handleAiRewrite(tpl.id, tpl.title)}
+                      disabled={aiLoadingId === tpl.id}
+                      className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-900 hover:bg-amber-100 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                      title="OpenAI で文面を自然に書き直します"
+                    >
+                      {aiLoadingId === tpl.id ? "✨ AI が書き直し中…" : "✨ AI で書き直す"}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        upsell.open({
+                          title: "AI 書き直しは Pro 機能です",
+                          description:
+                            "OpenAI を使って、より自然で読みやすい文面に書き直せます。",
+                        })
+                      }
+                      className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50/60 px-3 py-2 text-xs font-bold text-amber-800/80 hover:bg-amber-100 transition"
+                    >
+                      ✨ AI で書き直す
+                      <ProBadge className="!text-[9px] !px-1.5 ml-0.5" />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="nm-btn-primary !py-2 !px-3 text-sm"
+                    onClick={() => handleCopy(tpl.id)}
+                  >
+                    📋 コピー
+                  </button>
+                </div>
               )}
             </header>
             {locked ? (

@@ -15,6 +15,7 @@ import { useUpsell } from "../components/UpsellModal";
 import { DEFAULT_CONDITION, STORAGE_KEYS } from "../lib/mockData";
 import { ALL_MODES, MODE_PLANS } from "../lib/mode";
 import { usePlan } from "../lib/plan";
+import { decodeShare } from "../lib/share";
 import type { EventCondition, Mode, Restaurant } from "../lib/types";
 
 type StepNum = 1 | 2 | 3;
@@ -29,16 +30,40 @@ function AppPageInner() {
     useState<EventCondition>(DEFAULT_CONDITION);
   const [candidates, setCandidates] = useState<Restaurant[]>([]);
   const [hydrated, setHydrated] = useState(false);
+  const [sharedToast, setSharedToast] = useState<string | null>(null);
   const stepStartRef = useRef<HTMLDivElement | null>(null);
   const searchParams = useSearchParams();
   const queryMode = searchParams.get("mode");
+  const queryShared = searchParams.get("shared");
 
   const { isPro } = usePlan();
   const upsell = useUpsell();
 
   // 起動時に localStorage から条件のみ復元（候補はステップ2で必ず再ピックされるため永続化しない）
   // URL クエリで ?mode= が指定されていればそちらを優先する。
+  // ?shared= が指定されていれば、共有 URL から条件と候補を復元する。
   useEffect(() => {
+    // 共有 URL からの復元を優先
+    if (queryShared) {
+      const payload = decodeShare(queryShared);
+      if (payload) {
+        const condFromShare: EventCondition = {
+          ...DEFAULT_CONDITION,
+          ...payload.condition,
+        };
+        setCondition(condFromShare);
+        setCandidates(payload.restaurants);
+        setHydrated(true);
+        // 候補があれば Step3 へ、なければ Step2 へ進める
+        const hasSelected = payload.restaurants.some((r) => r.selected);
+        setStep(hasSelected ? 3 : 2);
+        setSharedToast("📥 共有された候補を読み込みました");
+        window.setTimeout(() => setSharedToast(null), 3500);
+        return;
+      }
+      // decode 失敗時はそのまま通常起動に進む
+    }
+
     let next: EventCondition = DEFAULT_CONDITION;
     try {
       const raw = localStorage.getItem(STORAGE_KEYS.condition);
@@ -181,6 +206,16 @@ function AppPageInner() {
           </p>
         </div>
       </main>
+
+      {sharedToast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 rounded-full bg-nomiris-brownDark text-white px-5 py-3 shadow-lg text-sm font-semibold"
+        >
+          {sharedToast}
+        </div>
+      )}
     </div>
   );
 }

@@ -8,7 +8,9 @@ import { pickCandidates } from "../lib/pick";
 import { usePlan } from "../lib/plan";
 import AddRestaurantForm from "./AddRestaurantForm";
 import CandidateCard from "./CandidateCard";
+import MapView from "./MapView";
 import ProBadge from "./ProBadge";
+import ProLock from "./ProLock";
 import { useUpsell } from "./UpsellModal";
 
 interface Props {
@@ -20,7 +22,7 @@ interface Props {
 }
 
 type DataSource = "hotpepper" | "catalog" | null;
-type ViewTab = "card" | "compare";
+type ViewTab = "card" | "compare" | "map";
 
 interface ApiResult {
   shops: Restaurant[];
@@ -346,6 +348,28 @@ export default function Step2Picker({
           >
             📊 比較表
           </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (!isPro) {
+                upsell.open({
+                  title: "地図ビューは Pro 機能です",
+                  description:
+                    "候補店の位置関係を地図ピンで一覧できます。Pro 版で解放されます。",
+                });
+                return;
+              }
+              setViewTab("map");
+            }}
+            className={`flex-1 rounded-full px-3 py-1.5 transition inline-flex items-center justify-center gap-1 ${
+              viewTab === "map"
+                ? "bg-white text-nomiris-brownDark shadow-sm"
+                : "text-nomiris-textSub"
+            }`}
+          >
+            📍 地図
+            {!isPro && <ProBadge className="!text-[9px] !px-1.5" />}
+          </button>
         </div>
 
         {loading ? (
@@ -411,7 +435,7 @@ export default function Step2Picker({
                   </li>
                 )}
               </ul>
-            ) : (
+            ) : viewTab === "compare" ? (
               <CompareTable
                 rows={candidates}
                 lockedExtras={lockedExtras}
@@ -425,6 +449,19 @@ export default function Step2Picker({
                   })
                 }
               />
+            ) : (
+              // map タブ
+              isPro ? (
+                <MapView candidates={candidates} />
+              ) : (
+                <ProLock
+                  label="地図ビューは Pro 機能"
+                  description="候補店の位置関係を地図ピンで一覧できます。"
+                  minHeight="280px"
+                >
+                  <div className="h-[280px] sm:h-[360px] rounded-xl bg-nomiris-cream/60" />
+                </ProLock>
+              )
             )}
           </>
         )}

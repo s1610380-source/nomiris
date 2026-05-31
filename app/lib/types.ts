@@ -81,6 +81,10 @@ export interface Restaurant {
   address?: string;
   /** 店舗写真 URL（HotPepper 由来。カタログ店は未設定でよい） */
   photoUrl?: string;
+  /** 緯度（HotPepper 由来の店のみ。地図表示に使う） */
+  lat?: number;
+  /** 経度（HotPepper 由来の店のみ。地図表示に使う） */
+  lng?: number;
   /** 出発地から店舗までの距離（Pro で取得時のみセット） */
   distanceFromOrigin?: {
     walkMinutes: number;
