@@ -3,6 +3,7 @@
 import { STORAGE_KEYS } from "./mockData";
 
 export type CheckoutKind = "pro" | "ticket";
+export type CheckoutBilling = "monthly" | "annual";
 export type CheckoutProvider = "stripe" | "paypay";
 
 export interface CheckoutResult {
@@ -13,15 +14,17 @@ export interface CheckoutResult {
 
 /**
  * Stripe / PayPay の Checkout Session を作るためのフロント側エントリ。
- * 環境変数（STRIPE_SECRET_KEY 等）が未設定の場合は dev モードとして
- * フロントで localStorage にプランを書き込むだけにする。
+ * 環境変数（STRIPE_SECRET_KEY 等）が設定されていれば本物の Stripe Checkout へ
+ * リダイレクトする。未設定の場合は dev モードとしてフロントで localStorage に
+ * プランを書き込むだけにする。
  */
 export async function startCheckout(
   kind: CheckoutKind,
+  billing: CheckoutBilling = "monthly",
   provider: CheckoutProvider = "stripe",
 ): Promise<void> {
   try {
-    const params = new URLSearchParams({ kind, provider });
+    const params = new URLSearchParams({ kind, billing, provider });
     const res = await fetch(`/api/checkout?${params.toString()}`, {
       method: "POST",
     });
@@ -32,7 +35,10 @@ export async function startCheckout(
       return;
     }
 
-    if (json.error === "stripe_not_configured" || json.error === "paypay_not_configured") {
+    if (
+      json.error === "stripe_not_configured" ||
+      json.error === "paypay_not_configured"
+    ) {
       // dev モード: ローカルでプランを切り替えるだけ
       const msg =
         kind === "pro"

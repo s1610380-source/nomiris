@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import Header from "../components/Header";
 import ProBadge from "../components/ProBadge";
 import { startCheckout } from "../lib/checkout";
@@ -153,10 +154,48 @@ function PlanCard({
   );
 }
 
-export default function PricingPage() {
+function PricingPageInner() {
   const { plan, setPlan, isPro, hydrated } = usePlan();
   const [cycle, setCycle] = useState<Cycle>("monthly");
   const isAnnual = cycle === "annual";
+  const searchParams = useSearchParams();
+  const [resultToast, setResultToast] = useState<
+    { tone: "success" | "info"; text: string } | null
+  >(null);
+
+  // Stripe Checkout から戻ってきた時の処理
+  useEffect(() => {
+    const success = searchParams.get("success");
+    const canceled = searchParams.get("canceled");
+    if (success === "1") {
+      setPlan("pro");
+      setResultToast({
+        tone: "success",
+        text: "✅ ご購入ありがとうございます！Pro が有効になりました",
+      });
+      // URL から success クエリを取り除く
+      if (typeof window !== "undefined") {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("success");
+        url.searchParams.delete("kind");
+        url.searchParams.delete("billing");
+        window.history.replaceState({}, "", url.pathname + url.search);
+      }
+      window.setTimeout(() => setResultToast(null), 6000);
+      return;
+    }
+    if (canceled === "1") {
+      setResultToast({ tone: "info", text: "決済をキャンセルしました" });
+      if (typeof window !== "undefined") {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("canceled");
+        window.history.replaceState({}, "", url.pathname + url.search);
+      }
+      window.setTimeout(() => setResultToast(null), 4000);
+    }
+    // 初回のみ
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -256,7 +295,11 @@ export default function PricingPage() {
                 "履歴を無制限に保存",
               ]}
               ctaLabel={isPro ? "✓ 利用中" : "✨ Pro にアップグレード"}
-              onCta={isPro ? undefined : () => startCheckout("pro")}
+              onCta={
+                isPro
+                  ? undefined
+                  : () => startCheckout("pro", isAnnual ? "annual" : "monthly")
+              }
               disabled={isPro}
             />
             <PlanCard
@@ -307,7 +350,7 @@ export default function PricingPage() {
               </div>
               <button
                 type="button"
-                onClick={() => startCheckout("ticket")}
+                onClick={() => startCheckout("ticket", "monthly")}
                 className="inline-flex items-center justify-center gap-1.5 rounded-full bg-nomiris-orange px-5 py-3 text-sm font-bold text-white shadow-sm hover:bg-nomiris-orangeDark transition"
               >
                 チケットを購入
@@ -360,6 +403,34 @@ export default function PricingPage() {
           </div>
         </div>
       </main>
+
+      {resultToast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 rounded-full px-5 py-3 shadow-lg text-sm font-semibold ${
+            resultToast.tone === "success"
+              ? "bg-amber-500 text-white"
+              : "bg-nomiris-brownDark text-white"
+          }`}
+        >
+          {resultToast.text}
+        </div>
+      )}
     </div>
+  );
+}
+
+export default function PricingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center text-sm text-nomiris-textSub">
+          読み込み中…
+        </div>
+      }
+    >
+      <PricingPageInner />
+    </Suspense>
   );
 }
